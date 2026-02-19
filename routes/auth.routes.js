@@ -23,13 +23,11 @@ router.post('/register', validater(registerSchema), async(req,res) =>{
             return res.status(400).json({message : "User Already Exists"});
         }
 
-
         const hashedPassword  = await bcrypt.hash(password, 10);
         const result = await pool.query(
             'INSERT INTO Users (username, email, password) VALUES ($1, $2, $3) RETURNING id',
             [username, email, hashedPassword]
         );
-
 
         res.status(201).json({
             message: "User Registered Successfully",
@@ -46,12 +44,13 @@ router.post('/register', validater(registerSchema), async(req,res) =>{
 router.post('/login', validater(loginSchema), async (req,res) =>{
     const {email,password} = req.body;
     try{
+        // Check User Exist
         const userResult = await pool.query(
             'SELECT * FROM Users WHERE email = $1', [email]
         );
 
         if(userResult.rows.length === 0){
-            return res.status(400).json({message : "Invalid Credentials"});
+            return res.status(400).json({message : "Register First, User Not Found"});
         }
         // console.log("1")
         const user = userResult.rows[0];
@@ -90,21 +89,20 @@ router.post('/refresh',async (req,res)=>{
     }
 
     try{
-        const user = await User.findOne({refreshToken: hashToken(refreshToken)});
-        if(!user){
+        const hashedRefreshToken = hashToken(refreshToken);
+        const userResult = await pool.query(
+            'SELECT * FROM Users WHERE refreshtoken = $1', [hashedRefreshToken]
+        );
+
+        if(userResult.rows.length === 0){
             return res.status(403).json({message:"Invalid Refresh Token"});
         }
-        // On Expire Update the Token from DB
-        jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-        const newAccessToken = generateAccessToken(user);
-        const newRefreshToken = generateRefreshToken(user);
 
-        user.refreshToken = hashToken(newRefreshToken);
-        await user.save();
-        
+        const user = userResult.rows[0];
+        const accessToken = generateAccessToken(user);
         res.json({
-            accessToken: newAccessToken,
-            refreshToken: newRefreshToken
+            "message":"Token Refreshed Successfully",
+            accessToken
         });
     }catch(err){
         res.status(403).json({message:"Refresh Token Expired"});
@@ -119,17 +117,12 @@ router.post('/logout', async (req,res)=>{
     }
     try{
         // console.log("Haaaaaaa");
-        const user = await User.findOne({refreshToken: refreshToken});
-        console.log("User Found for Logout : ", user);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        console.log(user);
-        console.log("RefreshToken : ", user.refreshToken);
-
-        user.refreshToken = null;
-        await user.save();
-        res.json({message:"Logout Successful"});
+        const hashedRefreshToken = hashToken(refreshToken);
+        await pool.query(
+            'UPDATE Users SET refreshtoken = NULL WHERE refreshtoken = $1',
+            [hashedRefreshToken]
+        );
+        res.json({message:"Logged Out Successfully"});
     }
     catch(err){
         res.status(403).json({message:"Server Error Occured While Logout"});
