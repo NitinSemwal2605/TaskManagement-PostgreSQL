@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import express from "express";
 import path from "path";
 import authRoute from "../routes/auth.routes.js";
-// import ProjectRoute from "../routes/project.routes.js";
+import ProjectRoute from "../routes/project.routes.js";
 // import TaskRoute from "../routes/task.routes.js";
 
 const app = express();
@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/auth", authRoute);
-// app.use("/projects", ProjectRoute);
+app.use("/projects", ProjectRoute);
 // app.use("/tasks", TaskRoute);
 
 app.use(express.static(path.join(process.cwd(), "public")));

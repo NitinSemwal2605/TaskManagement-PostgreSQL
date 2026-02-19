@@ -1,12 +1,11 @@
+import bcrypt from "bcrypt";
+import crypto from "crypto";
 import express from "express";
-import jwt from "jsonwebtoken";
 import validater from "../middlewares/validate.middleware.js";
+import pool from "../src/config/db.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 import { loginSchema, registerSchema } from "../validators/auth.validator.js";
 const router = express.Router();
-import pool  from "../src/config/db.js";
-import crypto from "crypto";
-import bcrypt from "bcrypt";
 
 const hashToken = (token) => {
     return crypto.createHash('sha256').update(token).digest('hex');
@@ -128,6 +127,4 @@ router.post('/logout', async (req,res)=>{
         res.status(403).json({message:"Server Error Occured While Logout"});
     }
 });
-
-
 export default router;

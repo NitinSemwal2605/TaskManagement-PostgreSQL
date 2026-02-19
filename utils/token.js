@@ -10,7 +10,7 @@ export const generateAccessToken = (user) => {
       email: user.email
     },
     process.env.ACCESS_TOKEN_SECRET,
-    { expiresIn: "45m" } // Edit
+    { expiresIn: "1d" } // Edit
   );
 };
 

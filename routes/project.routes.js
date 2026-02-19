@@ -1,7 +1,7 @@
 import express from "express";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import validate from "../middlewares/validate.middleware.js";
-import Project from "../src/models/Projects.js";
+import pool from "../src/config/db.js";
 import { createProjectSchema, updateProjectSchema } from "../validators/project.validator.js";
 
 const ProjectRoute = express.Router();
@@ -11,24 +11,12 @@ ProjectRoute.post( "/add", authMiddleware, validate(createProjectSchema), async 
     const { title, description , location} = req.body;
     // console.log("Request Body : ", req.body);
     try{
-      const projectData = {
-        title,
-        description,
-        owner: req.user.id
-      };
-
-      // Check Location Valid
-      if(location && Array.isArray(location.coordinates) && location.coordinates.length === 2){
-        projectData.location = {
-          type: "Point",
-          coordinates: location.coordinates
-        }
-      }
-
-      console.log("Project Data : ", projectData);
-      // Create and Save Project
-      const project = new Project(projectData);
-      await project.save();
+      const result = await pool.query(
+        'INSERT INTO Projects (title, description, location, owner_id) VALUES ($1, $2, $3, $4) RETURNING *',
+        [title, description, location ? JSON.stringify(location) : null, req.user.id]
+      );
+      console.log("Project: ", result);
+      const project = result.rows[0];
 
       res.status(201).json({
         message: "Project Added Successfully",
@@ -42,15 +30,19 @@ ProjectRoute.post( "/add", authMiddleware, validate(createProjectSchema), async 
   }
 );
 
-
-
 // Add Multiple Projects
 ProjectRoute.post("/add-multiple", authMiddleware, async (req, res) => {
   try{
     const projectsData = req.body.projects;
-    const projects = await Project.insertMany(
-      projectsData.map(proj => ({...proj, owner: req.user.id}))
-    );
+    const projects = [];
+    for(const data of projectsData){
+      const { title, description, location } = data;
+      const result = await pool.query(
+        'INSERT INTO Projects (title, description, location, owner_id) VALUES ($1, $2, $3, $4) RETURNING *',
+        [title, description, location ? JSON.stringify(location) : null, req.user.id]
+      );
+      projects.push(result.rows[0]);
+    }
 
     res.status(201).json({
       message: "Multiple Projects Added Successfully",
@@ -68,15 +60,25 @@ ProjectRoute.post("/add-multiple", authMiddleware, async (req, res) => {
 // Get All Projects with Pagination
 ProjectRoute.get("/list", authMiddleware, async (req, res) => {
   try{
-    const { page = 1, limit = 10 } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const projects = await Project.find({owner: req.user.id}).skip(skip).limit(limit);
-    const total = await Project.countDocuments({owner: req.user.id});
+
+    const projects = await pool.query('SELECT * FROM Projects WHERE owner_id = $1 AND is_deleted = false ORDER BY created_at DESC LIMIT $2 OFFSET $3',
+    [req.user.id, limit, skip]);
+
+    console.log('Projects :', projects);
+
+    const totalResult = await pool.query('SELECT COUNT(*) FROM Projects WHERE owner_id = $1 AND is_deleted = false',
+    [req.user.id]);
+    
+    const total = parseInt(totalResult.rows[0].count);
+    console.log("Total",total);
 
     res.status(200).json({
       message: "Projects Listed Successfully",
-      projects,
+      projects: projects.rows,
       total,
       page: Number(page),
       limit: Number(limit)
@@ -93,17 +95,20 @@ ProjectRoute.get("/list", authMiddleware, async (req, res) => {
 // Get Project by ID
 ProjectRoute.get("/list/:id", authMiddleware, async (req, res) => {
   try{
-    const project = await Project.findOne({
-      _id: req.params.id,
-      owner: req.user.id
-    })
+    const result = await pool.query('SELECT * FROM Projects WHERE id = $1 AND owner_id = $2 AND is_deleted = false',
+    [req.params.id, req.user.id]);
+
+    const project = result.rows[0];
+
     if(!project){
       return res.status(404).json({message: "Project Not Found"});
     }
+    
     res.status(200).json({
       message: "Project Fetched Successfully",
       project
     });
+
   } catch(error){
     console.log("Error in Fetching Project : ", error);
     res.status(400).json({message: "Server Error Occured"});
@@ -115,86 +120,61 @@ ProjectRoute.patch( "/update/:id", authMiddleware, validate(updateProjectSchema)
     try{
       const {title, description, location} = req.body;
 
-      const project = await Project.findOneAndUpdate({
-        _id: req.params.id,
-        owner: req.user.id
-      }, {
-        title,
-        description,
-        location: location && location.length === 2 ? {
-          type: "Point",
-          coordinates: location
-        } : undefined
-      }, { new: true }); // Return Updated Document
-      
+      const result = await pool.query('SELECT * FROM Projects WHERE id = $1 AND owner_id = $2 AND is_deleted = false',
+      [req.params.id, req.user.id]);
+      // console.log("1");
+      const project = result.rows[0];
+      // console.log("2");
       if(!project){
         return res.status(404).json({message: "Project Not Found"});
       }
-
+      // console.log("3");
       if(title){
         project.title = title;
       }
       if(description){
         project.description = description;
       }
-      if(location && location.length === 2){
-        project.location = {
-          type: "Point",
-          coordinates: location
-        }
+      if(location !== undefined && location !== null){
+        project.location = location;
       }
-      await project.save();
+      await pool.query(
+        'UPDATE Projects SET title = $1, description = $2, location = $3 WHERE id = $4 AND owner_id = $5',
+        [project.title, project.description,project.location ? JSON.stringify(project.location) : null, project.id, req.user.id]
+      );
+
+      res.status(200).json({
+        message: "Project Updated Successfully",
+        project
+      });
     }
+
     catch(error){
       console.log("Error in Updating Project :", error);
-      res.status(400).json({message: "Server Error Occured"});
+      res.status(400).json({message: "Server Error Occured", error: error.toString()});
     }
   }
 );
 
 
-// Soft Delete Project
+// Hard Delete Project
 ProjectRoute.delete("/delete/:id", authMiddleware, async (req, res) => {
   try{
-      const project = await Project.findOneAndUpdate({
-          _id: req.params.id,
-          owner: req.user.id,
-          isDeleted: false
-      }, {
-        isDeleted: true
-      });
-      
-      if(!project){
-          return res.status(404).json({message: "Project Not Found"});
+      // Check Existance
+      const project = await pool.query('SELECT * FROM Projects WHERE id = $1 AND owner_id = $2',
+      [req.params.id, req.user.id]);
+
+      if(project.rows.length === 0){
+        return res.status(404).json({message: "Project Not Found"});
       }
+
+      await pool.query('DELETE FROM Projects WHERE id = $1 AND owner_id = $2',
+      [req.params.id, req.user.id]);
       
-      await project.save();
+      res.status(200).json({message: "Project Deleted Successfully"});
   }
   catch(error){
     console.log("Error in Deleting Project :", error);
-    res.status(400).json({message: "Server Error Occured"});
-  }
-});
-
-// Restore Deleted Project
-ProjectRoute.post("/restore/:id", authMiddleware, async (req, res) => {
-  try{
-      const project = await Project.findOneAndUpdate({
-          _id: req.params.id,
-          owner: req.user.id,
-          isDeleted: true
-      }, {
-        isDeleted: false
-      });
-      
-      if(!project){
-          return res.status(404).json({message: "Project Not Found or Not Deleted"});
-      }
-
-      await project.save();
-  }
-  catch(error){
-    console.log("Error in Restoring Project :", error);
     res.status(400).json({message: "Server Error Occured"});
   }
 });
