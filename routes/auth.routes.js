@@ -1,11 +1,12 @@
 import express from "express";
 import jwt from "jsonwebtoken";
-import User from "../src/models/Users.js";
 import validater from "../middlewares/validate.middleware.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 import { loginSchema, registerSchema } from "../validators/auth.validator.js";
 const router = express.Router();
+import pool  from "../src/config/db.js";
 import crypto from "crypto";
+import bcrypt from "bcrypt";
 
 const hashToken = (token) => {
     return crypto.createHash('sha256').update(token).digest('hex');
@@ -14,19 +15,25 @@ const hashToken = (token) => {
 router.post('/register', validater(registerSchema), async(req,res) =>{
     const {username,email,password} = req.body;
     try{
-        const existingUser = await User.findOne({email});
-        if(existingUser){
-            return res.status(400).json({message:"User Already Exists"});
+        const existingUser = await pool.query(
+            'SELECT * FROM Users Where email = $1', [email]
+        );
+
+        if(existingUser.rows.length > 0){
+            return res.status(400).json({message : "User Already Exists"});
         }
-        const user = new User({
-            username,
-            email,
-            password
-        });
-        await user.save();
+
+
+        const hashedPassword  = await bcrypt.hash(password, 10);
+        const result = await pool.query(
+            'INSERT INTO Users (username, email, password) VALUES ($1, $2, $3) RETURNING id',
+            [username, email, hashedPassword]
+        );
+
+
         res.status(201).json({
             message: "User Registered Successfully",
-            userId : user._id
+            userId : result.rows[0].id
         });
     }
     catch(error){
@@ -39,20 +46,30 @@ router.post('/register', validater(registerSchema), async(req,res) =>{
 router.post('/login', validater(loginSchema), async (req,res) =>{
     const {email,password} = req.body;
     try{
-        const user = await User.findOne({email});
-        if(!user){
-            return res.status(404).json({message : "User Not Found"});
-        }
+        const userResult = await pool.query(
+            'SELECT * FROM Users WHERE email = $1', [email]
+        );
 
-        const isValid = await user.comparePassword(password);
-        if(!isValid){
-            return res.status(400).json({message : "Incorrect Credentials"});
+        if(userResult.rows.length === 0){
+            return res.status(400).json({message : "Invalid Credentials"});
         }
-
+        // console.log("1")
+        const user = userResult.rows[0];
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if(!isPasswordValid){
+            return res.status(400).json({message : "Invalid Credentials"});
+        }
+        // console.log("2")
         const accessToken = generateAccessToken(user);
         const refreshToken = generateRefreshToken(user);
-        user.refreshToken = hashToken(refreshToken);
-        await user.save();
+        console.log("3")
+        const hashedRefreshToken = hashToken(refreshToken);
+        await pool.query(
+            'UPDATE Users SET refreshtoken = $1 WHERE id = $2',
+            [hashedRefreshToken, user.id]
+        );
+        // console.log("4")
+
 
         res.json({
             message : "Login Successful",
