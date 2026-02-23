@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import express from "express";
 import validater from "../middlewares/validate.middleware.js";
-import pool from "../src/config/db.js";
+import User from "../src/models/User.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 import { loginSchema, registerSchema } from "../validators/auth.validator.js";
 const router = express.Router();
@@ -14,23 +14,22 @@ const hashToken = (token) => {
 router.post('/register', validater(registerSchema), async(req,res) =>{
     const {username,email,password} = req.body;
     try{
-        const existingUser = await pool.query(
-            'SELECT * FROM Users Where email = $1', [email]
-        );
-
-        if(existingUser.rows.length > 0){
-            return res.status(400).json({message : "User Already Exists"});
+        const existingUser = await User.findOne({ where: { email } });
+        if(existingUser){
+            return res.status(400).json({message: "Email already registered"});
         }
 
         const hashedPassword  = await bcrypt.hash(password, 10);
-        const result = await pool.query(
-            'INSERT INTO Users (username, email, password) VALUES ($1, $2, $3) RETURNING id',
-            [username, email, hashedPassword]
-        );
-
+        const newUser = await User.create({
+            username,
+            email,
+            password: hashedPassword
+        });
+        
+        // console.log("New User Created:", newUser.dataValues);
         res.status(201).json({
             message: "User Registered Successfully",
-            userId : result.rows[0].id
+            userId : newUser.id
         });
     }
     catch(error){
@@ -44,35 +43,28 @@ router.post('/login', validater(loginSchema), async (req,res) =>{
     const {email,password} = req.body;
     try{
         // Check User Exist
-        const userResult = await pool.query(
-            'SELECT * FROM Users WHERE email = $1', [email]
-        );
-
-        if(userResult.rows.length === 0){
+        const userResult = await User.findOne({ where: { email } });
+        if(!userResult){
             return res.status(400).json({message : "Register First, User Not Found"});
         }
         // console.log("1")
-        const user = userResult.rows[0];
+        const user = userResult.dataValues;
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if(!isPasswordValid){
             return res.status(400).json({message : "Invalid Credentials"});
         }
-        // console.log("2")
+        // console.log("2", user);
         const accessToken = generateAccessToken(user);
         const refreshToken = generateRefreshToken(user);
-        console.log("3")
+        // console.log("3", accessToken, refreshToken);
+
         const hashedRefreshToken = hashToken(refreshToken);
-        await pool.query(
-            'UPDATE Users SET refreshtoken = $1 WHERE id = $2',
-            [hashedRefreshToken, user.id]
-        );
-        // console.log("4")
-
-
+        const updatedUser = await User.update({ refreshtoken: hashedRefreshToken }, { where: { id: user.id } });
+        // console.log("4", updatedUser);
         res.json({
             message : "Login Successful",
             accessToken,
-            refreshToken
+            refreshToken,
         });
     }
     catch(error){
@@ -89,21 +81,18 @@ router.post('/refresh',async (req,res)=>{
 
     try{
         const hashedRefreshToken = hashToken(refreshToken);
-        const userResult = await pool.query(
-            'SELECT * FROM Users WHERE refreshtoken = $1', [hashedRefreshToken]
-        );
-
-        if(userResult.rows.length === 0){
+        const userResult = await User.findOne({ where: { refreshtoken: hashedRefreshToken } });
+        if(!userResult){
             return res.status(403).json({message:"Invalid Refresh Token"});
         }
-
-        const user = userResult.rows[0];
+        const user = userResult.dataValues;
         const accessToken = generateAccessToken(user);
         res.json({
             "message":"Token Refreshed Successfully",
             accessToken
         });
-    }catch(err){
+    }
+    catch(err){
         res.status(403).json({message:"Refresh Token Expired"});
     }
 });
@@ -117,14 +106,20 @@ router.post('/logout', async (req,res)=>{
     try{
         // console.log("Haaaaaaa");
         const hashedRefreshToken = hashToken(refreshToken);
-        await pool.query(
-            'UPDATE Users SET refreshtoken = NULL WHERE refreshtoken = $1',
-            [hashedRefreshToken]
-        );
+        const userResult = await User.findOne({ where: { refreshtoken: hashedRefreshToken } });
+
+        if(!userResult){
+            return res.status(403).json({message:"Invalid Refresh Token"});
+        }
+        const user = userResult.dataValues;
+        // console.log("Logout Debug", user);
+
+        await User.update({ refreshtoken: null }, { where: { id: user.id } });
         res.json({message:"Logged Out Successfully"});
     }
     catch(err){
         res.status(403).json({message:"Server Error Occured While Logout"});
     }
 });
+
 export default router;

@@ -22,9 +22,13 @@ const User = sequelize.define("User",
             type: DataTypes.TEXT,
             allowNull: false,
         },
+        refreshtoken: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
     },
     {
-        tableName: "Users",
+        tableName: "users",
         timestamps: true,
         createdAt: "created_at",
         updatedAt: false,

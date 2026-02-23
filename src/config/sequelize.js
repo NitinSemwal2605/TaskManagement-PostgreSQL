@@ -24,7 +24,7 @@ export const connectSequelize = async () => {
   try {
     await sequelize.authenticate();
     console.log("Sequelize connected successfully!");
-
+    // console.log("Database:", sequelize.getDatabaseName());
     const result = await sequelize.query("SELECT NOW()");
     console.log("Database time:", result[0][0].now);
 
