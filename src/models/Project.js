@@ -23,14 +23,14 @@ const Project = sequelize.define("Project",
             type: DataTypes.BOOLEAN,
             defaultValue: false,
         },
-        createdAt:{
+        created_at:{
             type: DataTypes.DATE,
             defaultValue: DataTypes.NOW,
         }
     },
     {
-        tableName: "Projects",
-        timestamps: false,
+        tableName: "projects",
+        timestamps: true,
         createdAt: "created_at",
         updatedAt: false,
     }
