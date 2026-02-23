@@ -1,9 +1,9 @@
 import dotenv from "dotenv";
 import express from "express";
 import path from "path";
-import authRoute from "../routes/auth.routes.js";
-import ProjectRoute from "../routes/project.routes.js";
-import TaskRoute from "../routes/task.routes.js";
+import authRoute from "../src/routes/auth.routes.js";
+import ProjectRoute from "../src/routes/project.routes.js";
+import TaskRoute from "../src/routes/task.routes.js";
 
 const app = express();
 dotenv.config({ quiet: true });

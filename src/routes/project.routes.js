@@ -1,7 +1,7 @@
 import express from "express";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import validate from "../middlewares/validate.middleware.js";
-import Project from "../src/models/Project.js";
+import Project from "../models/Project.js";
 import { createProjectSchema, updateProjectSchema } from "../validators/project.validator.js";
 
 const ProjectRoute = express.Router();

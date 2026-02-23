@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import express from "express";
 import validater from "../middlewares/validate.middleware.js";
-import User from "../src/models/User.js";
+import User from "../models/User.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 import { loginSchema, registerSchema } from "../validators/auth.validator.js";
 const router = express.Router();
