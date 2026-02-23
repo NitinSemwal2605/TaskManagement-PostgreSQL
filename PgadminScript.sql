@@ -72,15 +72,18 @@ VALUES
 ('Design UI', 'Frontend work', 2, 'completed'),
 ('Train Model', 'ML training', 3, 'pending');
 
-SELECT* FROM Tasks
+SELECT* FROM Tasks;
+SELECT * FROM Users;
 
-
+ALTER TABLE Users ADD RefreshToken Text ;
+SELECT * FROM Projects;
+ALTER TABLE Projects ADD location POINT;
 
 -- Testing (Get All Projects of User 1)
 SELECT * FROM Projects WHERE owner_id = 1;
 
 -- Testing (Get All Tasks of Project 1)
-SELECT * FROM Tasks WHERE Project_id = 1;
+SELECT * FROM Tasks WHERE Project_id = 7;
 
 -- Testing (Get Projects With Task Count)
 SELECT P.id , P.title, COUNT(t.id) As TaskCounts 
