@@ -65,6 +65,17 @@
 -- ('EdTech SaaS', 'Education product', 2),
 -- ('AI Research', 'AI-based solution', 1);
 
+SELECT * FROM projects;
+SELECT * FROM users;
+SELECT * FROM tasks;
+
+ALTER TABLE projects
+ADD COLUMN location JSON;
+
+DROP TABLE IF EXISTS "Tasks" CASCADE;
+DROP TABLE IF EXISTS "Projects" CASCADE;
+DROP TABLE IF EXISTS "Users" CASCADE;
+
 -- INSERT INTO Tasks (title, description, project_id, status)
 -- VALUES
 -- ('Build MVP', 'Initial development', 1, 'pending'),
@@ -111,3 +122,9 @@
 -- -- Soft Delete Test
 -- UPDATE Projects SET is_deleted = TRUE WHERE id = 1;
 
+
+-- TRUNCATE TABLE users RESTART IDENTITY CASCADE;
+
+-- Without this It'll convert all those into the lowercase
+SELECT current_database(); -- Giving Correct DB
+SELECT * FROM public."Users"; -- Giving the All Users Correctly 

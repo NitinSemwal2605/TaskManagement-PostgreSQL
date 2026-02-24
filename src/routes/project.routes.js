@@ -13,7 +13,7 @@ ProjectRoute.post( "/add", authMiddleware, validate(createProjectSchema), async 
       const result = await Project.create({
         title,
         description,
-        location: location ? JSON.stringify(location) : null,
+        location: location || null,
         owner_id: req.user.id,
         created_at: new Date()
       });
@@ -42,7 +42,7 @@ ProjectRoute.post("/add-multiple", authMiddleware, async (req, res) => {
       const result = await Project.create({
         title,
         description,
-        location: location ? JSON.stringify(location) : null,
+        location: location || null,
         owner_id: req.user.id
       });
       projects.push(result.dataValues);
@@ -60,7 +60,6 @@ ProjectRoute.post("/add-multiple", authMiddleware, async (req, res) => {
 });
 
 
-
 // Get All Projects with Pagination
 ProjectRoute.get("/list", authMiddleware, async (req, res) => {
   try{
@@ -71,8 +70,7 @@ ProjectRoute.get("/list", authMiddleware, async (req, res) => {
 
     const projects = await Project.findAndCountAll({
       where: {
-        owner_id: req.user.id,
-        is_deleted: false
+        owner_id: req.user.id
       },
       offset: skip,
       limit: limit,
@@ -103,8 +101,7 @@ ProjectRoute.get("/list/:id", authMiddleware, async (req, res) => {
     const result = await Project.findOne({
       where: {
         id: req.params.id,
-        owner_id: req.user.id,
-        is_deleted: false
+        owner_id: req.user.id
       }
     });
 
@@ -125,6 +122,7 @@ ProjectRoute.get("/list/:id", authMiddleware, async (req, res) => {
   }
 });
 
+
 // Update Project
 ProjectRoute.patch("/update/:id", authMiddleware, validate(updateProjectSchema), async (req, res) => {
   try {
@@ -133,8 +131,7 @@ ProjectRoute.patch("/update/:id", authMiddleware, validate(updateProjectSchema),
     const result = await Project.findOne({
       where: {
         id: req.params.id,
-        owner_id: req.user.id,
-        is_deleted: false
+        owner_id: req.user.id
       }
     });
 
@@ -171,8 +168,7 @@ ProjectRoute.delete("/delete/:id", authMiddleware, async (req, res) => {
       const result = await Project.findOne({
         where: {
           id: req.params.id,
-          owner_id: req.user.id,
-          is_deleted: false
+          owner_id: req.user.id
         }
       });
       

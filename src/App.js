@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import express from "express";
 import path from "path";
+import process from "process";
 import authRoute from "../src/routes/auth.routes.js";
 import ProjectRoute from "../src/routes/project.routes.js";
 import TaskRoute from "../src/routes/task.routes.js";

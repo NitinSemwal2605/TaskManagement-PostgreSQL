@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import pkg from 'pg';
+import process from 'process';
 
 dotenv.config({ quiet: true });
 

@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import process from "process";
 import App from "./App.js";
 import sequelize, { connectSequelize } from "./config/sequelize.js";
 

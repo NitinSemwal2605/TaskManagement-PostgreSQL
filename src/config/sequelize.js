@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 import { Sequelize } from "sequelize";
-
+import process from "process";
 dotenv.config({ quiet: true });
 
 const sequelize = new Sequelize(

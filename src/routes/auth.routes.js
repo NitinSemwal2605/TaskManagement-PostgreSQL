@@ -1,11 +1,15 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import dotenv from "dotenv";
 import express from "express";
+import jwt from "jsonwebtoken";
+import process from "process";
 import validater from "../middlewares/validate.middleware.js";
 import User from "../models/User.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 import { loginSchema, registerSchema } from "../validators/auth.validator.js";
 const router = express.Router();
+dotenv.config({ quiet: true });
 
 const hashToken = (token) => {
     return crypto.createHash('sha256').update(token).digest('hex');
@@ -60,7 +64,7 @@ router.post('/login', validater(loginSchema), async (req,res) =>{
 
         const hashedRefreshToken = hashToken(refreshToken);
         const updatedUser = await User.update({ refreshtoken: hashedRefreshToken }, { where: { id: user.id } });
-        // console.log("4", updatedUser);
+        console.log("4", updatedUser);
         res.json({
             message : "Login Successful",
             accessToken,
@@ -80,19 +84,26 @@ router.post('/refresh',async (req,res)=>{
     }
 
     try{
+        jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
         const hashedRefreshToken = hashToken(refreshToken);
         const userResult = await User.findOne({ where: { refreshtoken: hashedRefreshToken } });
         if(!userResult){
             return res.status(403).json({message:"Invalid Refresh Token"});
         }
         const user = userResult.dataValues;
-        const accessToken = generateAccessToken(user);
+        const newaccessToken = generateAccessToken(user);
+        const newrefreshToken = generateRefreshToken(user);
+
+        const newHashedRefreshToken = hashToken(newrefreshToken);
+        await User.update({ refreshtoken: newHashedRefreshToken }, { where: { id: user.id } });
         res.json({
             "message":"Token Refreshed Successfully",
-            accessToken
+            accessToken: newaccessToken,
+            refreshToken: newrefreshToken
         });
     }
-    catch(err){
+    catch(error){
+        console.log("Error in Refresh Token : ", error);
         res.status(403).json({message:"Refresh Token Expired"});
     }
 });
@@ -118,6 +129,7 @@ router.post('/logout', async (req,res)=>{
         res.json({message:"Logged Out Successfully"});
     }
     catch(err){
+        console.log("Error in Logout : ", err);
         res.status(403).json({message:"Server Error Occured While Logout"});
     }
 });

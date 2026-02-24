@@ -1,8 +1,8 @@
 import express from "express";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import validate from "../middlewares/validate.middleware.js";
-import Tasks from "../models/Task.js";
 import Projects from "../models/Project.js";
+import Tasks from "../models/Task.js";
 import { createTaskSchema, updateStatusSchema, updateTaskSchema } from "../validators/task.validator.js";
 const TaskRouter = express.Router();
 

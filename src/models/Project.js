@@ -19,9 +19,9 @@ const Project = sequelize.define("Project",
             type: DataTypes.INTEGER,
             allowNull: false,
         },
-        is_deleted: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: false,
+        location:{
+            type: DataTypes.JSONB,
+            allowNull: true,
         },
         created_at:{
             type: DataTypes.DATE,
