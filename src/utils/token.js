@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import process from "process";
+import crypto from 'crypto';
 
 dotenv.config({quiet:true});
 
@@ -24,3 +25,7 @@ export const generateRefreshToken = (user) => {
     { expiresIn: "7d" }
   );
 };
+
+export const hashToken = (token) => {
+    return crypto.createHash('sha256').update(token).digest('hex');
+}

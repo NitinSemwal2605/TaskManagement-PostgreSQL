@@ -4,9 +4,9 @@
   "description": "<!-- Build Task Management API: Users, Projects, Tasks CRUD endpoints. Implement Joi validation for all inputs. Add pagination, sorting, filtering, error handling. -->",
   "main": "src/server.js",
   "scripts": {
-    "lint" : "eslint .",
-    "lint:fix" : "eslint . --fix",
-    "fomat" : "prettier --write .",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "fomat": "prettier --write .",
     "start": "nodemon server.js",
     "prepare": "husky install"
   },
@@ -23,6 +23,7 @@
     "mongoose": "^9.2.1",
     "pg": "^8.18.0",
     "pg-hstore": "^2.3.4",
+    "redis": "^5.11.0",
     "sequelize": "^6.37.7"
   },
   "devDependencies": {
