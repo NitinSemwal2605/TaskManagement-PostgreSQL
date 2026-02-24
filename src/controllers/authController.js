@@ -1,10 +1,9 @@
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import jwt from "jsonwebtoken";
 import process from "process";
 import User from "../models/User.js";
-import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
-import { hashToken } from "../utils/token.js";
+import { generateAccessToken, generateRefreshToken, hashToken } from "../utils/token.js";
 
 dotenv.config({ quiet: true });
 

@@ -1,6 +1,6 @@
-import User from "./User.js";
 import Project from "./Project.js";
 import Task from "./Task.js";
+import User from "./User.js";
 
 // User → Projects
 User.hasMany(Project, {
@@ -22,4 +22,4 @@ Task.belongsTo(Project, {
   foreignKey: "project_id",
 });
 
-export { User, Project, Task };
+export { Project, Task, User };
