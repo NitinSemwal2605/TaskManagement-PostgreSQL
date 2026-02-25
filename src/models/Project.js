@@ -22,10 +22,6 @@ const Project = sequelize.define("Project",
         location:{
             type: DataTypes.JSONB,
             allowNull: true,
-        },
-        created_at:{
-            type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW,
         }
     },
     {

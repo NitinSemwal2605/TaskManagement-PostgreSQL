@@ -94,6 +94,7 @@ PORT=5000
 * Run migrations and seeders if using Sequelize CLI:
 
 ```bash
+npx sequelize migration:generate --name create-users
 npx sequelize-cli db:migrate
 npx sequelize-cli db:seed:all
 ```

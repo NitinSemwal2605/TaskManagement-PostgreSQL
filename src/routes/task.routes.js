@@ -3,11 +3,12 @@ import { addTask, deleteTask, listTasks, updateStatus, updateTask } from "../con
 import authMiddleware from "../middlewares/auth.middleware.js";
 import validate from "../middlewares/validate.middleware.js";
 import { createTaskSchema, updateStatusSchema, updateTaskSchema } from "../validators/task.validator.js";
+import { cache } from "../middlewares/cache.middleware.js";
 
 const TaskRouter = express.Router();
 
 TaskRouter.post( "/addTask/:id", authMiddleware, validate(createTaskSchema), addTask);
-TaskRouter.get("/list/:id",authMiddleware,listTasks);
+TaskRouter.get("/list/:id",authMiddleware,cache(300),listTasks);
 TaskRouter.put("/updateTask/:id", authMiddleware,validate(updateTaskSchema), updateTask);
 TaskRouter.patch( "/updateStatus/:id",authMiddleware, validate(updateStatusSchema),updateStatus);
 TaskRouter.delete("/deleteTask/:id",authMiddleware,deleteTask);
