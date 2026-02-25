@@ -34,7 +34,7 @@ const Session = sequelize.define("Session",
     }
 );
 
-User.hasMany(Session, { foreignKey: "userId" });
-Session.belongsTo(User, { foreignKey: "userId" });
+User.hasMany(Session, { foreignKey: "userId", onDelete: "CASCADE" });
+Session.belongsTo(User, { foreignKey: "userId" , onDelete: "CASCADE"});
 
 export default Session;

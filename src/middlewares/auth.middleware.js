@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import process from "process";
+import redisClient from "../config/redis.js";
 import Session from "../models/session.js";
 
 export default async (req,res,next) => {
@@ -16,11 +17,25 @@ export default async (req,res,next) => {
 
   try{
     const decoded = jwt.verify(token,process.env.ACCESS_TOKEN_SECRET);
+    
+    const cached = await redisClient.get(`session:${decoded.sessionId}`);
+    // console.log("Cache Result : ", cached);
+    if (cached) {
+      const sessionData = JSON.parse(cached);
+      if (new Date(sessionData.expiresAt) < new Date()) {
+        return res.status(403).json({ message: "Session Expired" });
+      }
+      return next();
+    }
+
+    if (!cached) {
+      console.log("Cache Missed");
+    }
 
     const session = await Session.findOne({
         where: {
             id: decoded.sessionId,
-            userId: decoded.sub,
+            userId: decoded.userId,
             status: "Online"
          }
     })

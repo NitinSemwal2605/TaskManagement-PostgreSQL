@@ -1,11 +1,12 @@
 import bcrypt from "bcrypt";
+import crypto from 'crypto';
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import process from "process";
 import Session from "../models/session.js";
 import User from "../models/User.js";
+import redisClient from "../config/redis.js";
 import { generateAccessToken, generateRefreshToken, hashToken } from "../utils/token.js";
-import crypto from 'crypto';
 
 dotenv.config({ quiet: true });
 
@@ -53,7 +54,7 @@ export const login = async (req, res) => {
         if (!isPasswordValid) {
         return res.status(400).json({ message: "Invalid Credentials" });
         }
-
+        // A Session ID on each Login
         const sessionId = crypto.randomUUID();
 
         const accessToken = generateAccessToken(user, sessionId);
@@ -62,13 +63,19 @@ export const login = async (req, res) => {
         const hashedRefreshToken = hashToken(refreshToken);
 
          // Create Session
-        await Session.create({
+        const session = await Session.create({
             id : sessionId,
             userId: user.id,
             refreshTokenHash : hashedRefreshToken,
             ipAddress: req.ip,
             expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         })
+        // Save Session in Redis (ID : Status : Expiry)
+        await redisClient.set(
+            `session:${sessionId}`,
+            JSON.stringify({ status: "active", expiresAt: session.expiresAt }),
+            { EX: 7 * 24 * 60 * 60 } // 7 days
+        );
 
         return res.json({
             message: "Login Successful",
@@ -92,7 +99,7 @@ export const refresh = async (req, res) => {
 
     try {
         const decoded = jwt.verify( refreshToken, process.env.REFRESH_TOKEN_SECRET);
-
+        // Check Session Validity
         const session = await Session.findOne({
             where: { id: decoded.sessionId, status: "Online" }
         })
@@ -100,8 +107,8 @@ export const refresh = async (req, res) => {
         if(!session){
             return res.status(403).json({ message: "Session Not Found or Invalid" });
         }
-
-        const userResult = await User.findOne({ where: { id: decoded.sub } });
+        // Check User Valid
+        const userResult = await User.findOne({ where: { id: decoded.userId } });
         if (!userResult) {
             return res.status(403).json({ message: "User Not Found" });
         }
@@ -109,6 +116,7 @@ export const refresh = async (req, res) => {
         const user = userResult.dataValues;
         const hashedRefreshToken = hashToken(refreshToken);
 
+        // Validate Refresh Token
         if (hashedRefreshToken !== session.refreshTokenHash) {
             await Session.update(
                 { status: "Revoked" },
@@ -149,7 +157,7 @@ export const logout = async (req, res) => {
 
     try {
         const decoded = jwt.verify( refreshToken, process.env.REFRESH_TOKEN_SECRET);
-
+        // Check Session Valid
         const session = await Session.findOne({
             where: { id: decoded.sessionId, status: "Online" }
         })
@@ -163,7 +171,8 @@ export const logout = async (req, res) => {
         if (hashedRefreshToken !== session.refreshTokenHash) {
             return res.status(403).json({ message: "Invalid Refresh Token" });
         }
-
+        // Delete Session 
+        await redisClient.del(`session:${session.id}`);
         await Session.update(
             { status: "Offline" },
             { where: { id: session.id } }
