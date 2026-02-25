@@ -7,6 +7,7 @@
 -- 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 -- );
 
+select * from sessions;
 -- -- Project Table
 -- CREATE TABLE Projects (
 --     id SERIAL PRIMARY KEY,
@@ -68,13 +69,14 @@
 SELECT * FROM projects;
 SELECT * FROM users;
 SELECT * FROM tasks;
+SELECT * FROM sessions;
 
 ALTER TABLE projects
 ADD COLUMN location JSON;
 
-DROP TABLE IF EXISTS "Tasks" CASCADE;
-DROP TABLE IF EXISTS "Projects" CASCADE;
-DROP TABLE IF EXISTS "Users" CASCADE;
+DROP TABLE IF EXISTS "tasks" CASCADE;
+DROP TABLE IF EXISTS "projects" CASCADE;
+DROP TABLE IF EXISTS "users" CASCADE;
 
 -- INSERT INTO Tasks (title, description, project_id, status)
 -- VALUES

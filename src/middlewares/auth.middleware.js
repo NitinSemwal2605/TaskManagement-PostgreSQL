@@ -1,10 +1,12 @@
 import jwt from "jsonwebtoken";
 import process from "process";
+import Session from "../models/session.js";
 
-export default (req,res,next) => {
+export default async (req,res,next) => {
   const authHeader = req.headers.authorization;
-  if(!authHeader){
-    return res.status(401).json({message : "Authorization Header Missing"});
+
+  if(!authHeader.startsWith("Bearer ")){
+    return res.status(401).json({message : "Wrong Authorization Header Format"});
   }
 
   const token = authHeader.split(" ")[1];
@@ -14,7 +16,26 @@ export default (req,res,next) => {
 
   try{
     const decoded = jwt.verify(token,process.env.ACCESS_TOKEN_SECRET);
-    req.user = decoded; // {id , email}
+
+    const session = await Session.findOne({
+        where: {
+            id: decoded.sessionId,
+            userId: decoded.sub,
+            status: "Online"
+         }
+    })
+
+    if(!session){
+        return res.status(403).json({ message: "Session Not Found or Invalid" });
+    }
+
+    if(session.expiresAt < new Date()){
+        session.status = "Offline";
+        await session.save();
+        return res.status(403).json({ message: "Session Expired" });
+    }
+
+    req.user = decoded; // {id , email, sessionId}
     next();
   } catch(err){
     console.log("Error : ", err);

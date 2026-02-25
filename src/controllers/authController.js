@@ -2,8 +2,10 @@ import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import process from "process";
+import Session from "../models/session.js";
 import User from "../models/User.js";
 import { generateAccessToken, generateRefreshToken, hashToken } from "../utils/token.js";
+import crypto from 'crypto';
 
 dotenv.config({ quiet: true });
 
@@ -52,11 +54,21 @@ export const login = async (req, res) => {
         return res.status(400).json({ message: "Invalid Credentials" });
         }
 
-        const accessToken = generateAccessToken(user);
-        const refreshToken = generateRefreshToken(user);
+        const sessionId = crypto.randomUUID();
+
+        const accessToken = generateAccessToken(user, sessionId);
+        const refreshToken = generateRefreshToken(user, sessionId);
+
         const hashedRefreshToken = hashToken(refreshToken);
 
-        await User.update( { refreshtoken: hashedRefreshToken },{ where: { id: user.id } });
+         // Create Session
+        await Session.create({
+            id : sessionId,
+            userId: user.id,
+            refreshTokenHash : hashedRefreshToken,
+            ipAddress: req.ip,
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        })
 
         return res.json({
             message: "Login Successful",
@@ -79,25 +91,40 @@ export const refresh = async (req, res) => {
     }
 
     try {
-        // Verify Refresh Token
         const decoded = jwt.verify( refreshToken, process.env.REFRESH_TOKEN_SECRET);
-        const hashedRefreshToken = hashToken(refreshToken);
 
-        const userResult = await User.findOne({ where: { refreshtoken: hashedRefreshToken },});
+        const session = await Session.findOne({
+            where: { id: decoded.sessionId, status: "Online" }
+        })
+
+        if(!session){
+            return res.status(403).json({ message: "Session Not Found or Invalid" });
+        }
+
+        const userResult = await User.findOne({ where: { id: decoded.sub } });
         if (!userResult) {
-            return res.status(403).json({ message: "Invalid Refresh Token" });
+            return res.status(403).json({ message: "User Not Found" });
         }
 
         const user = userResult.dataValues;
-        if (decoded.id !== user.id) {
-            return res.status(403).json({ message: "Token mismatch" });
+        const hashedRefreshToken = hashToken(refreshToken);
+
+        if (hashedRefreshToken !== session.refreshTokenHash) {
+            await Session.update(
+                { status: "Revoked" },
+                { where: { id: session.id } }
+            );
+            return res.status(403).json({ message: "Invalid Refresh Token" });
         }
 
-        const newAccessToken = generateAccessToken(user);
-        const newRefreshToken = generateRefreshToken(user);
+        const newAccessToken = generateAccessToken(user, session.id);
+        const newRefreshToken = generateRefreshToken(user, session.id);
         const newHashedRefreshToken = hashToken(newRefreshToken);
 
-        await User.update( { refreshtoken: newHashedRefreshToken }, { where: { id: user.id } });
+        await Session.update(
+            { refreshTokenHash: newHashedRefreshToken },
+            { where: { id: session.id } }
+        );
 
         return res.json({
             message: "Token Refreshed Successfully",
@@ -121,15 +148,30 @@ export const logout = async (req, res) => {
     }
 
     try {
-        const hashedRefreshToken = hashToken(refreshToken);
-        const userResult = await User.findOne({where: { refreshtoken: hashedRefreshToken },});
+        const decoded = jwt.verify( refreshToken, process.env.REFRESH_TOKEN_SECRET);
 
-        if (!userResult) {
+        const session = await Session.findOne({
+            where: { id: decoded.sessionId, status: "Online" }
+        })
+
+        if(!session){
+            return res.status(403).json({ message: "Session Not Found or Invalid" });
+        }
+
+        const hashedRefreshToken = hashToken(refreshToken);
+
+        if (hashedRefreshToken !== session.refreshTokenHash) {
             return res.status(403).json({ message: "Invalid Refresh Token" });
         }
 
-        await User.update({ refreshtoken: null },{ where: { id: userResult.id } });
-        return res.json({ message: "Logged Out Successfully" });
+        await Session.update(
+            { status: "Offline" },
+            { where: { id: session.id } }
+        );
+
+        return res.json({
+            message: "Logout Successful ",
+        });
 
     } catch (err) {
         console.log("Logout Error:", err);
