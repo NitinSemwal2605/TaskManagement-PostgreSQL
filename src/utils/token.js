@@ -8,7 +8,7 @@ dotenv.config({quiet:true});
 export const generateAccessToken = (user, sessionId) => {
   return jwt.sign(
     {
-      sub: user.id,
+      userId: user.id,
       email: user.email,
       sessionId
     },
@@ -20,7 +20,7 @@ export const generateAccessToken = (user, sessionId) => {
 export const generateRefreshToken = (user, sessionId) => {
   return jwt.sign(
     {
-      sub: user.id,
+      userId: user.id,
       sessionId
     },
     process.env.REFRESH_TOKEN_SECRET,

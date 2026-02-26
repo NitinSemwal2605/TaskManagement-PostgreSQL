@@ -61,7 +61,7 @@ export const listProjects = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
-
+        
         const projects = await Project.findAndCountAll({
             where: { owner_id: req.user.id},
             offset: skip,

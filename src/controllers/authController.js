@@ -3,9 +3,9 @@ import crypto from 'crypto';
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import process from "process";
+import redisClient from "../config/redis.js";
 import Session from "../models/session.js";
 import User from "../models/User.js";
-import redisClient from "../config/redis.js";
 import { generateAccessToken, generateRefreshToken, hashToken } from "../utils/token.js";
 
 dotenv.config({ quiet: true });
@@ -45,14 +45,15 @@ export const login = async (req, res) => {
         // Check User Exist
         const userResult = await User.findOne({ where: { email } });
         if (!userResult) {
-        return res.status(400).json({ message: "Register First, User Not Found" });}
+            return res.status(400).json({ message: "Register First, User Not Found" });
+        }
 
         // Extract User
         const user = userResult.dataValues;
         const isPasswordValid = await bcrypt.compare(password, user.password);
 
         if (!isPasswordValid) {
-        return res.status(400).json({ message: "Invalid Credentials" });
+            return res.status(400).json({ message: "Invalid Credentials" });
         }
         // A Session ID on each Login
         const sessionId = crypto.randomUUID();
@@ -70,10 +71,11 @@ export const login = async (req, res) => {
             ipAddress: req.ip,
             expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         })
+        
         // Save Session in Redis (ID : Status : Expiry)
         await redisClient.set(
             `session:${sessionId}`,
-            JSON.stringify({ status: "active", expiresAt: session.expiresAt }),
+            JSON.stringify({ status: "Online", expiresAt: session.expiresAt }),
             { EX: 7 * 24 * 60 * 60 } // 7 days
         );
 
@@ -171,7 +173,7 @@ export const logout = async (req, res) => {
         if (hashedRefreshToken !== session.refreshTokenHash) {
             return res.status(403).json({ message: "Invalid Refresh Token" });
         }
-        // Delete Session 
+        // Delete Session
         await redisClient.del(`session:${session.id}`);
         await Session.update(
             { status: "Offline" },

@@ -17,14 +17,22 @@ export default async (req,res,next) => {
 
   try{
     const decoded = jwt.verify(token,process.env.ACCESS_TOKEN_SECRET);
+    // console.log("DECODED:", decoded);
     
     const cached = await redisClient.get(`session:${decoded.sessionId}`);
-    // console.log("Cache Result : ", cached);
     if (cached) {
       const sessionData = JSON.parse(cached);
+
       if (new Date(sessionData.expiresAt) < new Date()) {
         return res.status(403).json({ message: "Session Expired" });
       }
+
+      req.user = {
+        id: decoded.userId,
+        email: decoded.email,
+        sessionId: decoded.sessionId
+      };
+
       return next();
     }
 
@@ -49,8 +57,14 @@ export default async (req,res,next) => {
         await session.save();
         return res.status(403).json({ message: "Session Expired" });
     }
+    
 
-    req.user = decoded; // {id , email, sessionId}
+    // req.user = decoded; // {id , email, sessionId}
+    req.user = {
+      id: decoded.userId,
+      email: decoded.email,
+      sessionId: decoded.sessionId
+    };
     next();
   } catch(err){
     console.log("Error : ", err);
