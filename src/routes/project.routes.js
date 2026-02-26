@@ -9,8 +9,8 @@ const ProjectRoute = express.Router();
 
 ProjectRoute.post("/add", authMiddleware, validate(createProjectSchema), addProject);
 ProjectRoute.post("/add-multiple", authMiddleware, addMultipleProjects);
-ProjectRoute.get("/list", authMiddleware, cache(300), listProjects);
-ProjectRoute.get("/list/:id", authMiddleware,  cache(300), getProjectById);
+ProjectRoute.get("/list", authMiddleware, cache("project",300), listProjects);
+ProjectRoute.get("/list/:id", authMiddleware,  cache("project",300), getProjectById);
 ProjectRoute.patch("/update/:id", authMiddleware, validate(updateProjectSchema), updateProject);
 ProjectRoute.delete("/delete/:id", authMiddleware, deleteProject);
 

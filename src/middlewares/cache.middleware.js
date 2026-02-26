@@ -1,13 +1,16 @@
 import redisClient from "../config/redis.js";
 
-export const cache = (ttl = 3600) => async(req,res,next) =>{
+export const cache = (role,ttl = 3600) => async(req,res,next) =>{
     if(req.method !== "GET") return next();
 
-    // const key = req.originalUrl ;
-    const key = `${req.originalUrl}_user_${req.user.userId}`; // Here req.user.id is fetched from auth middleware and it is unique for each user, so it will create a unique cache for each user.
+    const userId = req.user.id;
+    const id = req.params.id;
+
+    const key = id ? `user:${userId}:role:${role}:id:${id}` : `user:${userId}:role:${role}`;
     try{
         const cached = await redisClient.get(key);
         if (cached) {
+            console.log("Cache Hit Data");
             const sessionData = JSON.parse(cached);
 
             if (new Date(sessionData.expiresAt) < new Date()) {
@@ -17,7 +20,7 @@ export const cache = (ttl = 3600) => async(req,res,next) =>{
             return next();
         }
 
-        console.log("Cache Missed :", key);
+        console.log("Cache Missed Data");
 
         const orignal = res.json;
         res.json = async (data) =>{

@@ -1,4 +1,5 @@
 import Project from "../models/Project.js";
+import redisClient from "../config/redis.js";
 
 export const addProject = async (req, res) => {
     const { title, description, location } = req.body;
@@ -141,6 +142,12 @@ export const updateProject = async (req, res) => {
 
         await result.save();
 
+        const key1 = `user:${req.user.id}:role:project:id:${req.params.id}`;
+        const key2 = `user:${req.user.id}:role:project`;
+
+        redisClient.del(key1);
+        redisClient.del(key2);
+
         res.status(200).json({
             message: "Project Updated Successfully",
             project: result.dataValues
@@ -170,6 +177,11 @@ export const deleteProject = async (req, res) => {
         }
 
         await Project.destroy({ where: { id: req.params.id, owner_id: req.user.id}});
+        const key1 = `user:${req.user.id}:role:project:id:${req.params.id}`;
+        const key2 = `user:${req.user.id}:role:project`;
+
+        redisClient.del(key1);
+        redisClient.del(key2);
 
         res.status(200).json({
             message: "Project Deleted Successfully"

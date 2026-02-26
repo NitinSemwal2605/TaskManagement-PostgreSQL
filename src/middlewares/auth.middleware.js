@@ -18,9 +18,11 @@ export default async (req,res,next) => {
   try{
     const decoded = jwt.verify(token,process.env.ACCESS_TOKEN_SECRET);
     // console.log("DECODED:", decoded);
+  
     
     const cached = await redisClient.get(`session:${decoded.sessionId}`);
     if (cached) {
+      console.log("Session Hit in Cache");
       const sessionData = JSON.parse(cached);
 
       if (new Date(sessionData.expiresAt) < new Date()) {
@@ -37,7 +39,7 @@ export default async (req,res,next) => {
     }
 
     if (!cached) {
-      console.log("Cache Missed");
+      console.log("Cache Missed Session ");
     }
 
     const session = await Session.findOne({
@@ -45,7 +47,7 @@ export default async (req,res,next) => {
             id: decoded.sessionId,
             userId: decoded.userId,
             status: "Online"
-         }
+        }
     })
 
     if(!session){
@@ -58,7 +60,6 @@ export default async (req,res,next) => {
         return res.status(403).json({ message: "Session Expired" });
     }
     
-
     // req.user = decoded; // {id , email, sessionId}
     req.user = {
       id: decoded.userId,
@@ -66,7 +67,8 @@ export default async (req,res,next) => {
       sessionId: decoded.sessionId
     };
     next();
-  } catch(err){
+  }
+  catch(err){
     console.log("Error : ", err);
     res.status(401).json({message : "Invalid or Token Expired"})
   }

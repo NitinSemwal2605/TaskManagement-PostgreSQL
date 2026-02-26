@@ -8,7 +8,7 @@ import { cache } from "../middlewares/cache.middleware.js";
 const TaskRouter = express.Router();
 
 TaskRouter.post( "/addTask/:id", authMiddleware, validate(createTaskSchema), addTask);
-TaskRouter.get("/list/:id",authMiddleware,cache(300),listTasks);
+TaskRouter.get("/list/:id",authMiddleware,cache("task",300),listTasks);
 TaskRouter.put("/updateTask/:id", authMiddleware,validate(updateTaskSchema), updateTask);
 TaskRouter.patch( "/updateStatus/:id",authMiddleware, validate(updateStatusSchema),updateStatus);
 TaskRouter.delete("/deleteTask/:id",authMiddleware,deleteTask);

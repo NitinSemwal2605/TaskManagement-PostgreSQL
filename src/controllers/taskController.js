@@ -1,5 +1,6 @@
 import Projects from "../models/Project.js";
 import Tasks from "../models/Task.js";
+import redisClient from "../config/redis.js";
 
 export const addTask = async (req, res) => {
     try {
@@ -106,6 +107,8 @@ export const updateTask = async (req, res) => {
         }
 
         await task.save();
+        const key = `user:${userId}:role:task:id:${taskId}`;
+        redisClient.del(key);
 
         res.status(200).json({
             message: "Task updated successfully",
@@ -148,6 +151,9 @@ export const updateStatus = async (req, res) => {
         task.status = status;
         await task.save();
 
+        const key = `user:${userId}:role:task:id:${taskId}`;
+        redisClient.del(key);
+
         res.status(200).json({
             message: "Task status updated successfully",
             task
@@ -184,6 +190,9 @@ export const deleteTask = async (req, res) => {
         if (!project) {
             return res.status(403).json({message: "Please delete your own task :) "});
         }
+
+        const key = `user:${userId}:role:task:id:${taskId}`;
+        redisClient.del(key);
 
         await Tasks.destroy({ where: { id: taskId }});
 
