@@ -4,6 +4,7 @@ import Project from "../models/Project.js";
 import ProjectMember from "../models/ProjectMember.js";
 import User from "../models/User.js";
 
+// Only Owner and Admin Can Create Project.
 export const addProject = async (req, res) => {
     const transaction = await sequelize.transaction();
     const { title, description, location } = req.body;

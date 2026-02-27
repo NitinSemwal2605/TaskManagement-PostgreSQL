@@ -1,22 +1,17 @@
-import Projects from "../models/Project.js";
-import Tasks from "../models/Task.js";
 import redisClient from "../config/redis.js";
+import Tasks from "../models/Task.js";
+import { getMembership } from "../utils/projectAccess.js";
 
+// Only Owner and Members can Add Task.
 export const addTask = async (req, res) => {
     try {
         const { title, description } = req.body;
-        const userId = req.user.id;
         const projectId = req.params.id;
 
-        const projectExistance = await Projects.findOne({
-            where: {
-                id: projectId,
-                owner_id: userId
-            }
-        });
+        const membership = await getMembership(req.user.id, projectId);
 
-        if (!projectExistance) {
-            return res.status(404).json({ message: "Please check your project id :) " });
+        if (!membership || (membership.role !== 'admin' && membership.role !== "owner" && membership.role !== "member")) {
+            return res.status(403).json({ message: "You don't have access to this project" });
         }
 
         const newTask = await Tasks.create({
@@ -38,20 +33,14 @@ export const addTask = async (req, res) => {
     }
 };
 
+// Anyone from Project can list tasks.
 export const listTasks = async (req, res) => {
     try {
-        const userId = req.user.id;
         const projectId = req.params.id;
 
-        const project = await Projects.findOne({
-            where: {
-                id: projectId,
-                owner_id: userId
-            }
-        });
-
-        if (!project) {
-            return res.status(404).json({ message: "Please check your project id :) "});
+        const membership = await getMembership(req.user.id, projectId);
+        if (!membership) {
+            return res.status(403).json({ message: "You don't have access to this project" });
         }
 
         const tasks = await Tasks.findAndCountAll({
@@ -72,31 +61,20 @@ export const listTasks = async (req, res) => {
     }
 };
 
+// Only Owner can Update Task.
 export const updateTask = async (req, res) => {
     try {
         const { title, description } = req.body;
         const taskId = req.params.id;
-        const userId = req.user.id;
 
-        const task = await Tasks.findOne({
-            where: { id: taskId }
-        });
-
+        const task = await Tasks.findByPk(taskId);
         if (!task) {
-        return res.status(404).json({
-            message: "Task Not Found"
-        });
+            return res.status(404).json({ message: "Task not found" });
         }
 
-        const project = await Projects.findOne({
-            where: {
-                id: task.project_id,
-                owner_id: userId
-            }
-        });
-
-        if (!project) {
-            return res.status(403).json({ message: "Please update your own task :) " });
+        const membership = await getMembership(req.user.id, task.project_id);
+        if (!membership || membership.role !== "owner") {
+            return res.status(403).json({ message: "You don't have access to update this task" });
         }
 
         if (title){
@@ -107,7 +85,8 @@ export const updateTask = async (req, res) => {
         }
 
         await task.save();
-        const key = `user:${userId}:role:task:id:${taskId}`;
+        const key = `user:${req.user.id}:role:task:id:${taskId}`;
+
         redisClient.del(key);
 
         res.status(200).json({
@@ -123,41 +102,33 @@ export const updateTask = async (req, res) => {
     }
 };
 
+// Only Members Can Update Task Status.
 export const updateStatus = async (req, res) => {
     try {
         const { status } = req.body;
         const taskId = req.params.id;
-        const userId = req.user.id;
 
-        const task = await Tasks.findOne({
-            where: { id: taskId }
-        });
-
+        const task = await Tasks.findByPk(taskId);
         if (!task) {
-            return res.status(404).json({ message: "Task not found"});
+            return res.status(404).json({ message: "Task not found" });
         }
 
-        const project = await Projects.findOne({
-            where: {
-                id: task.project_id,
-                owner_id: userId
-            }
-        });
-
-        if (!project) {
-            return res.status(403).json({ message: "Please update your own task :) "});
+        const membership = await getMembership(req.user.id, task.project_id);
+        if (!membership || (membership.role !== "owner" && membership.role !== "member")) {
+            return res.status(403).json({ message: "You don't have access to update this task status" });
         }
 
         task.status = status;
         await task.save();
 
-        const key = `user:${userId}:role:task:id:${taskId}`;
+        const key = `user:${req.user.id}:role:task:id:${taskId}`;
         redisClient.del(key);
 
         res.status(200).json({
             message: "Task status updated successfully",
             task
         });
+
     } catch (error) {
         console.log(error);
         res.status(500).json({
@@ -167,31 +138,23 @@ export const updateStatus = async (req, res) => {
     }
 };
 
+
+// Only Owner can Delete Task.
 export const deleteTask = async (req, res) => {
     try {
         const taskId = req.params.id;
-        const userId = req.user.id;
 
-        const task = await Tasks.findOne({
-            where: { id: taskId }
-        });
-
+        const task = await Tasks.findByPk(taskId);
         if (!task) {
-            return res.status(404).json({ message: "Task not found"});
+            return res.status(404).json({ message: "Task not found" });
         }
 
-        const project = await Projects.findOne({
-            where: {
-                id: task.project_id,
-                owner_id: userId
-            }
-        });
-
-        if (!project) {
-            return res.status(403).json({message: "Please delete your own task :) "});
+        const membership = await getMembership(req.user.id, task.project_id);
+        if (!membership || membership.role !== "owner") {
+            return res.status(403).json({ message: "You don't have access to delete this task" });
         }
 
-        const key = `user:${userId}:role:task:id:${taskId}`;
+        const key = `user:${req.user.id}:role:task:id:${taskId}`;
         redisClient.del(key);
 
         await Tasks.destroy({ where: { id: taskId }});
