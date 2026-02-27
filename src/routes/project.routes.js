@@ -1,5 +1,5 @@
 import express from "express";
-import { addMultipleProjects, addProject, deleteProject, getProjectById, listProjects, updateProject } from "../controllers/projectController.js";
+import { AddMembers, addMultipleProjects, addProject, deleteProject, getProjectById, listProjectMembers, listProjects, updateProject } from "../controllers/projectController.js";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import { cache } from "../middlewares/cache.middleware.js";
 import validate from "../middlewares/validate.middleware.js";
@@ -13,5 +13,7 @@ ProjectRoute.get("/list", authMiddleware, cache("project",300), listProjects);
 ProjectRoute.get("/list/:id", authMiddleware,  cache("project",300), getProjectById);
 ProjectRoute.patch("/update/:id", authMiddleware, validate(updateProjectSchema), updateProject);
 ProjectRoute.delete("/delete/:id", authMiddleware, deleteProject);
+ProjectRoute.post("/:projectId/members",authMiddleware, AddMembers );
+ProjectRoute.get("/:projectId/listmembers", authMiddleware, listProjectMembers);
 
 export default ProjectRoute;

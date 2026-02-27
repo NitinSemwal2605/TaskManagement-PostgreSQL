@@ -15,10 +15,6 @@ const Project = sequelize.define("Project",
         description: {
             type: DataTypes.TEXT,
         },
-        owner_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-        },
         location:{
             type: DataTypes.JSONB,
             allowNull: true,

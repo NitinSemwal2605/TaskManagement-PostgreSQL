@@ -63,6 +63,8 @@ export const login = async (req, res) => {
 
         const hashedRefreshToken = hashToken(refreshToken);
 
+        // console.log("Aaaaaaaaaa");
+
          // Create Session
         const session = await Session.create({
             id : sessionId,
@@ -71,6 +73,8 @@ export const login = async (req, res) => {
             ipAddress: req.ip,
             expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         })
+
+        // console.log("Bbbbbbbbbbbb");
         
         // Save Session in Redis (ID : Status : Expiry)
         await redisClient.set(
@@ -92,6 +96,7 @@ export const login = async (req, res) => {
         });
     }
 };
+
 
 export const refresh = async (req, res) => {
     const { refreshToken } = req.body;

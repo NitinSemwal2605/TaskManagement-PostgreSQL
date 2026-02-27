@@ -21,11 +21,7 @@ const User = sequelize.define("User",
         password: {
             type: DataTypes.TEXT,
             allowNull: false,
-        },
-        refreshtoken: {
-            type: DataTypes.STRING,
-            allowNull: true
-        },
+        }
     },
     {
         tableName: "users",
