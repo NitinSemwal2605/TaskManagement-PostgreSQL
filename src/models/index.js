@@ -7,59 +7,59 @@ import Session from "./session.js";
 
 User.belongsToMany(Project, {
   through: ProjectMember,
-  foreignKey: "user_id",
+  foreignKey: "userId",
 });
 
 Project.belongsToMany(User, {
   through: ProjectMember,
-  foreignKey: "project_id",
+  foreignKey: "projectId",
 });
 
 Project.hasMany(ProjectMember, {
-  foreignKey: "project_id",
+  foreignKey: "projectId",
   onDelete: "CASCADE",
   as : "members",
 });
 
 ProjectMember.belongsTo(Project, {
-  foreignKey: "project_id",
+  foreignKey: "projectId",
 });
 
 User.hasMany(ProjectMember, {
-  foreignKey: "user_id",
+  foreignKey: "userId",
   onDelete: "CASCADE",
 });
 
 ProjectMember.belongsTo(User, {
-  foreignKey: "user_id",
+  foreignKey: "userId",
   as: "user",
 });
 
 Project.hasMany(Task, {
-  foreignKey: "project_id",
+  foreignKey: "projectId",
   onDelete: "CASCADE",
 });
 
 Task.belongsTo(Project, {
-  foreignKey: "project_id",
+  foreignKey: "projectId",
 });
 
 Project.hasMany(ChatMessage, {
-  foreignKey: "project_id",
+  foreignKey: "projectId",
   onDelete: "CASCADE",
 });
 
 ChatMessage.belongsTo(Project, {
-  foreignKey: "project_id",
+  foreignKey: "projectId",
 });
 
 User.hasMany(ChatMessage, {
-  foreignKey: "sender_id",
+  foreignKey: "senderId",
   onDelete: "CASCADE",
 });
 
 ChatMessage.belongsTo(User, {
-  foreignKey: "sender_id",
+  foreignKey: "senderId",
 });
 
 export { ChatMessage, Project, ProjectMember, Session, Task, User };

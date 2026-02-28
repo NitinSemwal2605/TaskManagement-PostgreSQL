@@ -11,7 +11,7 @@ const ProjectMember = sequelize.define(
             primaryKey: true,
             autoIncrement: true,
         },
-        project_id: {
+        projectId: {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
@@ -20,7 +20,7 @@ const ProjectMember = sequelize.define(
             },
             onDelete: "CASCADE",
         },
-        user_id: {
+        userId: {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
@@ -37,10 +37,11 @@ const ProjectMember = sequelize.define(
     {
         tableName: "projectmembers",
         timestamps: true,
-        createdAt: "created_at",
+        underscored: false, // Switching to default camelCase
+        createdAt: "createdAt",
         updatedAt: false,
         indexes: [
-            { unique: true, fields: ["project_id", "user_id"],},
+            { unique: true, fields: ["projectId", "userId"],},
         ],
     }
 );

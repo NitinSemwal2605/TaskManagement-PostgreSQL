@@ -11,7 +11,7 @@ const ChatMessage = sequelize.define(
             primaryKey: true,
             autoIncrement: true,
         },
-        project_id: {
+        projectId: {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
@@ -20,7 +20,7 @@ const ChatMessage = sequelize.define(
             },
             onDelete: "CASCADE",
         },
-        sender_id: {
+        senderId: {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
@@ -37,11 +37,12 @@ const ChatMessage = sequelize.define(
     {
         tableName: "chatmessages",
         timestamps: true,
-        createdAt: "created_at",
+        underscored: false,
+        createdAt: "createdAt",
         updatedAt: false,
         indexes: [
-            { fields: ["project_id"],},
-            { fields: ["created_at"],},
+            { fields: ["projectId"],},
+            { fields: ["createdAt"],},
         ],
     }
 );

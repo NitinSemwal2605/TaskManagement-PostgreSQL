@@ -23,7 +23,8 @@ const Project = sequelize.define("Project",
     {
         tableName: "projects",
         timestamps: true,
-        createdAt: "created_at",
+        underscored: false,
+        createdAt: "createdAt",
         updatedAt: false,
     }
 );

@@ -19,11 +19,11 @@ const Task = sequelize.define("Task",
             type: DataTypes.ENUM("pending", "in_progress", "completed"),
             defaultValue: "pending",
         },
-        project_id: {
+        projectId: {
             type: DataTypes.INTEGER,
             allowNull: false,
         },
-        created_at:{
+        createdAt:{
             type: DataTypes.DATE,
             defaultValue: DataTypes.NOW,
         }
@@ -31,7 +31,8 @@ const Task = sequelize.define("Task",
     {
         tableName: "tasks",
         timestamps: true,
-        createdAt: "created_at",
+        underscored: false,
+        createdAt: "createdAt",
         updatedAt: false,
     }
 );
