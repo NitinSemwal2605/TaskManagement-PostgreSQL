@@ -14,6 +14,7 @@ async function startServer() {
 
     await sequelize.authenticate();
     console.log("PostgreSQL Authenticated Successfully");
+    
     await connectSequelize();
     console.log("Sequelize Connected");
     console.log("Sequelize Models Synced");
