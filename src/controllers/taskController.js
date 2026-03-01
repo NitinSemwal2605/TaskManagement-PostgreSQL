@@ -17,8 +17,8 @@ export const addTask = async (req, res) => {
         const newTask = await Tasks.create({
             title,
             description,
-            project_id: projectId,
-            created_at: new Date()
+            projectId: projectId,
+            createdAt: new Date()
         });
 
         res.status(201).json({ message: "Task created successfully",
@@ -44,8 +44,8 @@ export const listTasks = async (req, res) => {
         }
 
         const tasks = await Tasks.findAndCountAll({
-            where: { project_id: projectId},
-            order: [["created_at", "DESC"]]
+            where: { projectId: projectId},
+            order: [["createdAt", "DESC"]]
         });
 
         res.status(200).json({
@@ -72,7 +72,7 @@ export const updateTask = async (req, res) => {
             return res.status(404).json({ message: "Task not found" });
         }
 
-        const membership = await getMembership(req.user.id, task.project_id);
+        const membership = await getMembership(req.user.id, task.projectId);
         if (!membership || membership.role !== "owner") {
             return res.status(403).json({ message: "You don't have access to update this task" });
         }
@@ -113,7 +113,7 @@ export const updateStatus = async (req, res) => {
             return res.status(404).json({ message: "Task not found" });
         }
 
-        const membership = await getMembership(req.user.id, task.project_id);
+        const membership = await getMembership(req.user.id, task.projectId);
         if (!membership || (membership.role !== "owner" && membership.role !== "member")) {
             return res.status(403).json({ message: "You don't have access to update this task status" });
         }
@@ -149,7 +149,7 @@ export const deleteTask = async (req, res) => {
             return res.status(404).json({ message: "Task not found" });
         }
 
-        const membership = await getMembership(req.user.id, task.project_id);
+        const membership = await getMembership(req.user.id, task.projectId);
         if (!membership || membership.role !== "owner") {
             return res.status(403).json({ message: "You don't have access to delete this task" });
         }

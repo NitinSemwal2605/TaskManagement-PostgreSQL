@@ -15,15 +15,15 @@ export const addProject = async (req, res) => {
             title,
             description,
             location: location || null,
-            created_at: new Date()
+            createdAt: new Date()
         } , { transaction });
 
         // Creator Will be the Owner of the Project
         await ProjectMember.create({
-            user_id: req.user.id,
-            project_id: result.id,
+            userId: req.user.id,
+            projectId: result.id,
             role: "owner",
-            created_at: new Date()
+            createdAt: new Date()
         }, { transaction});
 
         await transaction.commit();
@@ -54,16 +54,15 @@ export const addMultipleProjects = async (req, res) => {
             const result = await Project.create({
                 title,
                 description,
-                location: location || null,
-                owner_id: req.user.id
+                location: location || null
             }, { transaction });
 
             // Creater will be Owner
             await ProjectMember.create({
-                user_id: req.user.id,
-                project_id: result.id,
+                userId: req.user.id,
+                projectId: result.id,
                 role: "owner",
-                created_at: new Date()
+                createdAt: new Date()
             }, { transaction });
 
             projects.push(result.dataValues);
@@ -98,13 +97,13 @@ export const listProjects = async (req, res) => {
                 {
                     // model: ProjectMember,
                     association : "members",
-                    where: { user_id: req.user.id },
+                    where: { userId: req.user.id },
                     attributes: []
                 }
             ],
             limit,
             offset,
-            order: [['created_at', 'DESC']]
+            order: [['createdAt', 'DESC']]
         });
 
         res.status(200).json({
@@ -133,7 +132,7 @@ export const getProjectById = async (req, res) => {
             include : [
                 {
                     association : "members",
-                    where: { user_id: req.user.id },
+                    where: { userId: req.user.id },
                     attributes: []
                 }
             ]
@@ -164,11 +163,11 @@ export const getProjectById = async (req, res) => {
 export const AddMembers = async (req,res) =>{
     const transaction = await sequelize.transaction();
     try{
-        const project_id = req.params.projectId;
+        const projectId = req.params.projectId;
         const {members} = req.body;
 
         //Check Project Exist
-        const project = await Project.findByPk(project_id);
+        const project = await Project.findByPk(projectId);
         if(!project){
             return res.status(404).json({message : "Project Not Found"});
         }
@@ -176,8 +175,8 @@ export const AddMembers = async (req,res) =>{
         //Only Owner Can Add New Members
         const memberShip = await ProjectMember.findOne({
             where: {
-                user_id: req.user.id,
-                project_id: project_id,
+                userId: req.user.id,
+                projectId: projectId,
                 role : "owner"
             }
         });
@@ -189,17 +188,17 @@ export const AddMembers = async (req,res) =>{
         const newMembers = [];
         
         for(const member of members){
-            const { user_id, role = "member" } = member;
+            const { userId, role = "member" } = member;
 
-            const user = await User.findByPk(user_id);
+            const user = await User.findByPk(userId);
             if (!user) {
                 return res.status(404).json({ message: "User Not Found" });
             }
 
             const existingMember = await ProjectMember.findOne({
                 where: {
-                    user_id,
-                    project_id
+                    userId,
+                    projectId: projectId
                 }
             });
             
@@ -208,18 +207,18 @@ export const AddMembers = async (req,res) =>{
             }
 
             newMembers.push({
-                user_id,
-                project_id,
+                userId,
+                projectId: projectId,
                 role,
-                created_at: new Date()
+                createdAt: new Date()
             }, { transaction });
 
 
             await ProjectMember.create({
-                user_id,
-                project_id,
+                userId,
+                projectId: projectId,
                 role,
-                created_at: new Date()
+                createdAt: new Date()
             }, { transaction });
         }
         
@@ -243,17 +242,17 @@ export const AddMembers = async (req,res) =>{
 
 export const listProjectMembers = async (req, res) => {
     try {
-        const project_id = req.params.projectId;
+        const projectId = req.params.projectId;
 
         // Check Project Exist
-        const project = await Project.findByPk(project_id);
+        const project = await Project.findByPk(projectId);
         if (!project) {
             return res.status(404).json({ message: "Project Not Found" });
         }
 
         // Fetch Members of this Project
         const members = await ProjectMember.findAll({
-            where: { project_id },
+            where: { projectId: projectId },
             include: [
                 {
                     model: User,
@@ -290,8 +289,8 @@ export const updateProject = async (req, res) => {
         // Only Owner Can Update Project
         const memberShip = await ProjectMember.findOne({
             where: {
-                user_id: req.user.id,
-                project_id: req.params.id
+                userId: req.user.id,
+                projectId: req.params.id
             }
         });
 
@@ -342,8 +341,8 @@ export const deleteProject = async (req, res) => {
         // Only Owner Can Delete Project
         const memberShip = await ProjectMember.findOne({
             where: {
-                user_id: req.user.id,
-                project_id: req.params.id,
+                userId: req.user.id,
+                projectId: req.params.id,
                 role : "owner"
             }
         });

@@ -1,163 +1,163 @@
+# 🚀 Task Management API (PostgreSQL + Sequelize)
 
-# TaskManagement.PostgreSQL
+[![Node.js](https://img.shields.io/badge/Node.js-v24.x-green?logo=node.js)](https://nodejs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-v14+-blue?logo=postgresql)](https://www.postgresql.org/)
+[![Sequelize](https://img.shields.io/badge/Sequelize-ORM-3949AB?logo=sequelize)](https://sequelize.org/)
+[![Redis](https://img.shields.io/badge/Redis-Caching-DC382D?logo=redis)](https://redis.io/)
+[![Socket.IO](https://img.shields.io/badge/Socket.IO-RealTime-010101?logo=socket.io)](https://socket.io/)
 
-A task management REST API built with Node.js, Express, Sequelize ORM, and PostgreSQL.
-This project supports user authentication, project management, and task tracking with secure token-based login and refresh tokens.
-
----
-
-## Features
-
-* User registration and login with JWT access and refresh tokens
-* CRUD operations for Projects and Tasks
-* Authorization checks ensuring users can only manage their own projects and tasks
-* Input validation using Joi
-* Pagination support for listing projects
-* Soft deletes (is_deleted flag) and hard deletes for tasks and projects
-* Structured and modular codebase for easy maintenance and scalability
+A premium, enterprise-grade Task Management REST API. Built with a focus on **Security, Scalability, and Developer Experience.**
 
 ---
 
-## Tech Stack
+## ✨ Key Features
 
-* **Node.js**
-* **Express.js**
-* **Sequelize ORM**
-* **PostgreSQL**
-* **bcrypt** for password hashing
-* **jsonwebtoken** for JWT-based authentication
-* **Joi** for input validation
+-   **🔒 Secure Authentication**: JWT-based access tokens with secure Refresh Token rotation.
+-   **📂 Project & Task CRUD**: Full management of projects and hierarchical tasks.
+-   **💬 Real-Time Collaboration**: Integrated **Socket.IO** for instant project updates and messaging.
+-   **⚡ High Performance**: Caching layer implemented using **Redis** to reduce DB load.
+-   **🛑 Robust Security**:
+    -   **Rate Limiting**: Integrated Redis-based rate limiter to prevent API abuse.
+    -   **Input Validation**: Strict schema validation using **Joi**.
+-   **🛠️ Developer Experience**:
+    -   **Convention over Configuration**: Standardized camelCase naming and modular structure.
+    -   **Idempotent Migrations**: Sequelize CLI migrations with built-in safety checks.
+    -   **Code Quality**: Integrated **ESLint, Prettier, Husky**, and **Commitlint**.
 
 ---
 
-## Folder Structure
+## 🛠️ Tech Stack
 
-```
+-   **Backend**: Node.js, Express.js (v5+)
+-   **Database**: PostgreSQL
+-   **ORM**: Sequelize
+-   **Caching**: Redis
+-   **Real-time**: Socket.IO
+-   **Security**: Bcrypt, JWT, Joi
+-   **Tooling**: Sequelize-CLI, Nodemon, ESLint, Prettier
+
+---
+
+## 📂 Project Architecture
+
+```text
 TaskManagement.PostgreSQL/
-│
-├── config/
-│   └── config.json              # Sequelize CLI config
-├── migrations/
-│   └── xyz.cjs              # Automatically Created Files
-├── seeders/                 # Seed scripts for initial data
-├── models/                  # Automatically Generated
-    └── index.js
-├── node_modules/
+├── config/                     # Sequelize CLI Database configuration
+├── migrations/                 # Idempotent DB migrations
+├── seeders/                    # Initial database seed scripts
 ├── src/
-│   ├── config/
-│   │   └── sequelize.js         # Sequelize instance setup
-│   ├── models/                  # Sequelize models and initialization
-│   ├── routes/                  # Express routes grouped by resource
-│   ├── middlewares/             # Authentication, validation, error handlers
-│   ├── validators/              # Joi validation schemas
-│   ├── utils/                   # Utility helper functions (token, hashing)
-│   ├── App.js                   # Express app setup
-│   └── Server.js                # Server entry point
-│
-├── .env                        # Environment variables
-├── package.json
-├── README.md
-└── PgadminScript.sql            # DB setup scripts
+│   ├── config/                 # Redis & Sequelize instance setup
+│   ├── controllers/            # Business logic handlers
+│   ├── middlewares/            # Auth, RateLimiting, Validation handlers
+│   ├── models/                 # Sequelize definitions & Associations
+│   ├── routes/                 # Express route definitions
+│   ├── sockets/                # Socket.IO logic & Event handlers
+│   ├── utils/                  # Shared helper functions
+│   ├── validators/             # Joi validation schemas
+│   ├── App.js                  # Main app setup
+│   └── Server.js               # Entry point & dependency injection
+├── .env                        # Environment configuration
+└── .sequelizerc                # CLI Configuration
 ```
 
 ---
 
-## Setup & Installation
+## 🚀 Getting Started
 
-1. **Clone the repository**
+### Prerequisites
+
+-   **Node.js** (v18+)
+-   **PostgreSQL**
+-   **Redis**
+
+### 1. Installation
 
 ```bash
-git clone <repository-url>
+git clone <your-repo-link>
 cd TaskManagement.PostgreSQL
-```
-
-2. **Install dependencies**
-
-```bash
 npm install
 ```
 
-3. **Configure environment variables**
+### 2. Environment Setup
 
-Create a `.env` file at project root with content like:
+Create a `.env` file in the root directory:
 
 ```env
-DATABASE_URL=postgres://user:password@localhost:5432/dbname
-JWT_SECRET=your_jwt_secret
-REFRESH_TOKEN_SECRET=your_refresh_token_secret
 PORT=5000
+DB_USER=your_postgres_user
+DB_PASSWORD=your_postgres_password
+DB_NAME=task_management_sql
+DB_HOST=localhost
+DB_PORT=5432
+REDIS_URL=redis://localhost:6379
+ACCESS_TOKEN_SECRET=your_long_secure_string
+REFRESH_TOKEN_SECRET=your_another_secure_string
 ```
 
-4. **Setup database**
+### 3. Database Migration
 
-* Ensure PostgreSQL is installed and running.
-* Run migrations and seeders if using Sequelize CLI:
+Sync your DB schema using the built-in idempotent migrations:
 
 ```bash
-npx sequelize migration:generate --name create-session
 npx sequelize-cli db:migrate
-npx sequelize-cli db:seed:all
 ```
 
-* Or manually run the `PgadminScript.sql` if provided.
-
-5. **Start the server**
+### 4. Running the App
 
 ```bash
+# Development mode
 npm run start
+
+# Production mode
+node src/Server.js
 ```
 
-The server runs at `http://localhost:5000` (or the port you configured).
+---
+
+## 📡 API Reference
+
+### 🔐 Authentication
+
+| Method | Endpoint              | Description                      |
+| :----- | :-------------------- | :------------------------------- |
+| `POST` | `/auth/register`      | Create a new user account        |
+| `POST` | `/auth/login`         | Authenticate and receive tokens  |
+| `POST` | `/auth/refresh-token` | Renew an expired access token    |
+
+### 📁 Projects
+
+| Method   | Endpoint                | Description                       |
+| :------- | :---------------------- | :-------------------------------- |
+| `POST`   | `/projects/add`         | Create a new project              |
+| `GET`    | `/projects/list`        | List all projects (with Caching)  |
+| `GET`    | `/projects/list/:id`    | Get specific project details      |
+| `DELETE` | `/projects/delete/:id`  | Remove a project                  |
+
+### ✔️ Tasks
+
+| Method   | Endpoint                    | Description                       |
+| :------- | :-------------------------- | :-------------------------------- |
+| `POST`   | `/tasks/addTask/:projectId` | Assign a task to a project        |
+| `PUT`    | `/tasks/updateTask/:id`     | Modify task details               |
+| `PATCH`  | `/tasks/updateStatus/:id`   | Update progress (Pending/Done)    |
+| `DELETE` | `/tasks/deleteTask/:id`     | Remove a task                     |
 
 ---
 
-## API Endpoints
+## 🧪 Development Workflow
 
-### Auth
+To maintain high code standards, we use:
 
-* `POST /auth/register` - Register new user
-* `POST /auth/login` - Login user and get access & refresh tokens
-* `POST /auth/refresh-token` - Refresh access token
-
-### Projects
-
-* `POST /projects/add` - Add new project
-* `POST /projects/add-multiple` - Add multiple projects
-* `GET /projects/list` - List projects with pagination
-* `GET /projects/list/:id` - Get project by ID
-* `PATCH /projects/update/:id` - Update project
-* `DELETE /projects/delete/:id` - Delete project
-
-### Tasks
-
-* `POST /tasks/addTask/:projectId` - Add task to a project
-* `GET /tasks/list/:projectId` - List tasks by project
-* `PUT /tasks/updateTask/:id` - Update task details
-* `PATCH /tasks/updateStatus/:id` - Update task status
-* `DELETE /tasks/deleteTask/:id` - Delete task
+-   **Commit messages**: Follow [Conventional Commits](https://www.conventionalcommits.org/).
+-   **Git Hooks**: Managed by **Husky**; runs linting before every commit.
+-   **Styling**: Use `npm run lint:fix` to automatically format code.
 
 ---
 
-## Notes
+## 📜 License
 
-* Authentication middleware protects all routes except registration and login.
-* Passwords are securely hashed with bcrypt.
-* Refresh tokens are hashed before storing in the database for security.
-* All date fields are stored in UTC.
+Distributed under the **MIT License**. See `LICENSE` for more information.
 
 ---
 
-## Contribution
-
-Feel free to fork, raise issues, or submit pull requests.
-Please ensure consistent code style and include tests for new features.
-
----
-
-## License
-
-This project is licensed under the MIT License.
-
----
-
-If you want, I can generate a detailed API documentation or Postman collection next!
+Created with ❤️ by **Nitin Semwal**

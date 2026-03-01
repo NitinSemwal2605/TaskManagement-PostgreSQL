@@ -30,7 +30,10 @@ const Session = sequelize.define("Session",
 
     {
         tableName: "sessions",
-        timestamps: true
+        timestamps: true,
+        underscored: false,
+        createdAt: "createdAt",
+        updatedAt: "updatedAt"
     }
 );
 
