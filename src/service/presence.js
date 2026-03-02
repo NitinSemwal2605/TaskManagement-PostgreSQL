@@ -1,15 +1,16 @@
 import redisClient from "../config/redis.js";
 import { ProjectMember } from "../models/index.js";
 
-
 // Get All Project IDs for a User
 const getUserProjectIds = async (userId) => {
   try {
+    
     const memberships = await ProjectMember.findAll({
       where: { userId: userId },
       attributes: ["projectId"],
-      raw: true,
+      raw: true, // Plain Object
     });
+
     return memberships.map((m) => m.projectId);
   } catch (error) {
     console.error("Error fetching user project IDs:", error);
@@ -17,16 +18,14 @@ const getUserProjectIds = async (userId) => {
   }
 };
 
-
 // Get Online Users from List of User IDs
 export const getOnlineUsers = async (userIds) => {
   if (!userIds || userIds.length === 0) return [];
   
-  // Redis v4+ uses direct array for multi/exec
   const promises = userIds.map(id => redisClient.get(`presence:user:${id}`));
-  const results = await Promise.all(promises);
+  const results = await Promise.all(promises); // Array of Null/Online
   
-  return userIds.filter((id, index) => results[index] === "online");
+  return userIds.filter((id, index) => results[index] === "online"); // Only Online
 };
 
 
@@ -36,12 +35,16 @@ export const handlePresence = (socket, io) => {
 
   const setupPresence = async () => {
     try {
-      await redisClient.set(`presence:user:${userId}`, "online", {
-        EX: 120 // 2 minutes heartbeat
-      });
-      
+      const key = `presence:user:${userId}`;
+      await redisClient.set(key, "online", "EX", 24 * 60 * 60 * 7);
       console.log(`User ${userId} is now Online`);
       
+      const previousPresence = await redisClient.get(key);
+      if (previousPresence === "online") {
+        console.log(`User ${userId} is already online`);
+        return;
+      }
+
       // Get all projects this user is in
       const projectIds = await getUserProjectIds(userId);
       
@@ -57,9 +60,10 @@ export const handlePresence = (socket, io) => {
 
   setupPresence();
 
-  // Fetch Presence for a Project
-  socket.on("get:project:presence", async (projectId) => {
+  // fetching online members of project
+  socket.on("get:project:presence", async (payload) => {
     try {
+      const projectId  = payload.projectId
       // Verify membership
       const membership = await ProjectMember.findOne({
         where: { projectId: projectId, userId: userId }
@@ -75,9 +79,10 @@ export const handlePresence = (socket, io) => {
 
       const memberIds = members.map(m => m.userId);
       const onlineMemberIds = await getOnlineUsers(memberIds);
-
-      socket.emit("project:presence", { projectId, onlineMembers: onlineMemberIds });
+      console.log("hello");
+      socket.emit("project:presence", { projectId, onlineMembers: onlineMemberIds }); // Send List Of Online Members.
       console.log("these members are online", onlineMemberIds);
+
     } catch (err) {
       console.error("Error fetching project presence:", err);
     }
@@ -85,7 +90,8 @@ export const handlePresence = (socket, io) => {
 
   socket.on("disconnect", async () => {
     try {
-      await redisClient.del(`presence:user:${userId}`);
+      const key = `presence:user:${userId}`;
+      await redisClient.del(key); // Delete Presence
       console.log(`User ${userId} disconnected`);
 
       const projectIds = await getUserProjectIds(userId);
@@ -94,17 +100,10 @@ export const handlePresence = (socket, io) => {
       projectIds.forEach(projectId => {
         io.to(`project:${projectId}`).emit("user:offline", { userId });
       });
-      
+
       console.log(`User ${userId} is now Offline`);
     } catch (err) {
       console.error("Presence disconnection error:", err);
     }
-  });
-
-  socket.on("heartbeat", async () => {
-    await redisClient.set(`presence:user:${userId}`, "online", {
-      EX: 120
-    });
-    console.log(`User ${userId} heartbeat`);
   });
 };

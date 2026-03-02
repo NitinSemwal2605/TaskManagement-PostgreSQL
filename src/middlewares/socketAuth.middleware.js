@@ -4,7 +4,7 @@ import redisClient from '../config/redis.js';
 
 export const socketAuthMiddleware = async (socket, next) => {
     const token = socket.handshake.auth.token || socket.handshake.query.token;
-    console.log('Socket Authentication Attempt: Token received:', !!token);
+    console.log('Token Received :', !!token);
     
     if (!token) {
         return next(new Error('Authentication error: Token not provided'));
@@ -12,7 +12,8 @@ export const socketAuthMiddleware = async (socket, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-        
+
+        // Check Valid Session in Redis
         const cached = await redisClient.get(`session:${decoded.sessionId}`);
         if (!cached) {
             return next(new Error('Authentication error: Session expired or not found'));
@@ -20,6 +21,7 @@ export const socketAuthMiddleware = async (socket, next) => {
 
         console.log('Socket authenticated for user:', decoded.userId);
 
+        // Attach Details to Object
         socket.user = {
             id: decoded.userId,
             email: decoded.email,

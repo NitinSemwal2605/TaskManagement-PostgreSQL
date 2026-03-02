@@ -4,6 +4,7 @@ import ProjectMember from "../models/ProjectMember.js";
 export const handleProjectRooms = (socket) => {
     socket.on('join:Project', async (projectId) => {
         try{
+
             if(!projectId){
                 return socket.emit('error', {message: 'Project ID is required to join a room'});
             }
@@ -26,17 +27,18 @@ export const handleProjectRooms = (socket) => {
             socket.join(roomName); // User Joins Project Room
             console.log(`User ${socket.user.id} joined room: ${roomName}`);
 
-            // Successfull Joined
+            // Successfull Joined (Nofify Him)
             socket.emit('joined:Project', {projectId: projectId,
                 message: `Joined project room ${roomName}`
             });
-
+            
             //Notify Others in the Room
             socket.to(roomName).emit('userJoined:Project', {
                 userId: socket.user.id,
                 message: `User ${socket.user.id} has joined the project`
             });
-            
+
+
         } catch (err) {
             console.error('Error joining project room:', err);
             socket.emit('error', {message: 'Error joining project room'});
@@ -46,7 +48,7 @@ export const handleProjectRooms = (socket) => {
     socket.on('leave:Project', async (projectId) => {
         try{
             const roomName = `project:${projectId}`;
-            socket.leave(roomName); // User Leaves Project Room
+            socket.leave(roomName); // User Leaves
             console.log(`User ${socket.user.id} left room: ${roomName}`);
 
             // Successfull Left

@@ -1,8 +1,8 @@
 import redisClient from "../config/redis.js";
 import Tasks from "../models/Task.js";
+import { getIO } from "../service/socketServer.js";
 import { getMembership } from "../utils/projectAccess.js";
 
-// Only Owner and Members can Add Task.
 export const addTask = async (req, res) => {
     try {
         const { title, description } = req.body;
@@ -21,11 +21,19 @@ export const addTask = async (req, res) => {
             createdAt: new Date()
         });
 
+        // Broadcast to Project Room
+        const io = getIO();
+        io.to(`project:${projectId}`).emit("task:created", {
+            projectId,
+            task: newTask
+        });
+
         res.status(201).json({ message: "Task created successfully",
             task: newTask
         });
-        
+
     } catch (err) {
+        console.log("Error creating task:", err);
         res.status(500).json({
             message: "Internal Server Error",
             error: err.toString()
@@ -37,7 +45,6 @@ export const addTask = async (req, res) => {
 export const listTasks = async (req, res) => {
     try {
         const projectId = req.params.id;
-
         const membership = await getMembership(req.user.id, projectId);
         if (!membership) {
             return res.status(403).json({ message: "You don't have access to this project" });
@@ -54,6 +61,7 @@ export const listTasks = async (req, res) => {
         });
 
     } catch (err) {
+        console.log("Error fetching tasks:", err);
         res.status(500).json({
             message: "Internal Server Error",
             error: err.toString()
@@ -73,7 +81,7 @@ export const updateTask = async (req, res) => {
         }
 
         const membership = await getMembership(req.user.id, task.projectId);
-        if (!membership || membership.role !== "owner") {
+        if (!membership || membership.role !== "owner" && membership.role !== 'admin') {
             return res.status(403).json({ message: "You don't have access to update this task" });
         }
 
@@ -85,16 +93,23 @@ export const updateTask = async (req, res) => {
         }
 
         await task.save();
-        const key = `user:${req.user.id}:role:task:id:${taskId}`;
 
+        const io = getIO();
+        io.to(`project:${task.projectId}`).emit("task:updated", {
+            projectId: task.projectId,
+            task
+        });
+
+        const key = `user:${req.user.id}:role:task:id:${taskId}`;
         redisClient.del(key);
 
         res.status(200).json({
             message: "Task updated successfully",
             task
         });
+
     } catch (err) {
-        console.log(err);
+        console.log("Error updating task:", err);
         res.status(500).json({
             message: "Internal Server Error",
             error: err.toString()
@@ -114,7 +129,7 @@ export const updateStatus = async (req, res) => {
         }
 
         const membership = await getMembership(req.user.id, task.projectId);
-        if (!membership || (membership.role !== "owner" && membership.role !== "member")) {
+        if (!membership || (membership.role !== "owner" && membership.role !== "member" && membership.role !== 'admin')) {
             return res.status(403).json({ message: "You don't have access to update this task status" });
         }
 
@@ -124,13 +139,19 @@ export const updateStatus = async (req, res) => {
         const key = `user:${req.user.id}:role:task:id:${taskId}`;
         redisClient.del(key);
 
+        const io = getIO();
+        io.to(`project:${task.projectId}`).emit("task:status:updated", {
+            projectId: task.projectId,
+            task
+        });
+
         res.status(200).json({
             message: "Task status updated successfully",
             task
         });
 
     } catch (error) {
-        console.log(error);
+        console.log("Error updating task status:", error);
         res.status(500).json({
             message: "Internal Server Error",
             error: error.toString()
@@ -150,7 +171,7 @@ export const deleteTask = async (req, res) => {
         }
 
         const membership = await getMembership(req.user.id, task.projectId);
-        if (!membership || membership.role !== "owner") {
+        if (!membership || membership.role !== "owner" && membership.role !== 'admin') {
             return res.status(403).json({ message: "You don't have access to delete this task" });
         }
 
@@ -159,11 +180,17 @@ export const deleteTask = async (req, res) => {
 
         await Tasks.destroy({ where: { id: taskId }});
 
+        const io = getIO();
+        io.to(`project:${task.projectId}`).emit("task:deleted", {
+            projectId: task.projectId,
+            taskId
+        });
+
         res.status(200).json({
             message: "Task Deleted Successfully"
         });
     } catch (err) {
-        console.log(err);
+        console.log("Error deleting task:", err);
         res.status(500).json({
             message: "Internal Server Error",
             error: err.toString()

@@ -3,6 +3,8 @@ import sequelize from "../config/sequelize.js";
 import Project from "../models/Project.js";
 import ProjectMember from "../models/ProjectMember.js";
 import User from "../models/User.js";
+import { forceRemoval, forceRemovalAllMembers } from "../service/Emitter.js";
+import { getMembership } from "../utils/projectAccess.js";
 
 // Only Owner and Admin Can Create Project.
 export const addProject = async (req, res) => {
@@ -37,7 +39,7 @@ export const addProject = async (req, res) => {
         await transaction.rollback();
         console.log("Error in Adding Project:", error);
         res.status(400).json({
-            message: "Error Occured While Adding Project"
+            message: "Error Occurred While Adding Project"
         });
     }
 };
@@ -50,6 +52,7 @@ export const addMultipleProjects = async (req, res) => {
 
         for (const data of projectsData) {
             const { title, description, location } = data;
+
             // Create Project in DB
             const result = await Project.create({
                 title,
@@ -57,7 +60,7 @@ export const addMultipleProjects = async (req, res) => {
                 location: location || null
             }, { transaction });
 
-            // Creater will be Owner
+            // Creator will be Owner
             await ProjectMember.create({
                 userId: req.user.id,
                 projectId: result.id,
@@ -79,7 +82,8 @@ export const addMultipleProjects = async (req, res) => {
         await transaction.rollback(); // Rollback Transaction
         console.log("Error in Adding Multiple Projects:", error);
         res.status(400).json({
-            message: "Error Occured While Adding Multiple Projects"
+            message: "Error Occurred While Adding Multiple Projects",
+            error: error.toString()
         });
     }
 };
@@ -95,7 +99,6 @@ export const listProjects = async (req, res) => {
         const {count , rows} = await Project.findAndCountAll({
             include :[
                 {
-                    // model: ProjectMember,
                     association : "members",
                     where: { userId: req.user.id },
                     attributes: []
@@ -105,6 +108,9 @@ export const listProjects = async (req, res) => {
             offset,
             order: [['createdAt', 'DESC']]
         });
+
+        console.log("Projects Count:", count);
+        console.log("Projects Fetched:", rows.length);
 
         res.status(200).json({
             message: "Projects Listed Successfully",
@@ -117,7 +123,8 @@ export const listProjects = async (req, res) => {
     catch (error) {
         console.log("Error in Listing Project:", error);
         res.status(400).json({
-            message: "Error Occured While Listing Projects"
+            message: "Error Occurred While Listing Projects",
+            error: error.toString()
         });
     }
 };
@@ -152,7 +159,7 @@ export const getProjectById = async (req, res) => {
         console.log("Error in Fetching Project:", error);
         
         res.status(400).json({
-            message: "Error Occured While Fetching Project",
+            message: "Error Occurred While Fetching Project",
             error: error.toString()
         });
     }
@@ -177,7 +184,7 @@ export const AddMembers = async (req,res) =>{
             where: {
                 userId: req.user.id,
                 projectId: projectId,
-                role : "owner"
+                role : ["owner", "admin"]
             }
         });
 
@@ -233,7 +240,7 @@ export const AddMembers = async (req,res) =>{
         console.log("Error in Adding New Members:", error);
         
         res.status(400).json({
-            message: "Error Occured While Adding New Members",
+            message: "Error Occurred While Adding New Members",
             error: error.toString()
         });
     }
@@ -276,11 +283,64 @@ export const listProjectMembers = async (req, res) => {
         console.log("Error in Listing Project Members:", error);
         
         res.status(400).json({
-            message: "Error Occured While Listing Project Members",
+            message: "Error Occurred While Listing Project Members",
             error: error.toString()
         });
     }
 };
+
+
+export const deleteProjectMember = async (req, res) => {
+    try{
+        const projectId = req.params.projectId;
+        const userId = req.params.userId;
+
+        // Check Project Exist
+        const project = await Project.findByPk(projectId);
+        if (!project) {
+            return res.status(404).json({ message: "Project Not Found" });
+        }
+
+        // Only Owner and Admin Can Delete Members
+        const memberShip = await getMembership(req.user.id, projectId);
+        if(!memberShip || (memberShip.role !== "owner" && memberShip.role !== "admin")) {
+            return res.status(403).json({ message: "Only Owner and Admin Can Delete Members" });
+        }
+
+        const MemberToDelete = await ProjectMember.findOne({
+            where: {
+                userId,
+                projectId
+            }
+        })
+
+        if(!MemberToDelete) {
+            return res.status(404).json({ message: "Member Not Found in this Project" });
+        }
+
+        await ProjectMember.destroy({
+            where: {
+                userId,
+                projectId
+            }
+        });
+
+        // Now Forcefully Remove User from Socket Room and Notify (This also broadcasts userLeft:Project)
+        forceRemoval(userId, projectId);
+        console.log("He is Removed from All Devices");
+
+        res.status(200).json({ message: "Member Deleted Successfully" });
+    }
+    catch (error) {
+        console.log("Error in Deleting Project Member:", error);
+        
+        res.status(400).json({
+            message: "Error Occurred While Deleting Project Member",
+            error: error.toString()
+        });
+    }
+}
+
 
 export const updateProject = async (req, res) => {
     try {
@@ -294,7 +354,7 @@ export const updateProject = async (req, res) => {
             }
         });
 
-        if(!memberShip || memberShip.role !== "owner") {
+        if(!memberShip || memberShip.role !== "owner" && memberShip.role !== "admin") {
             return res.status(403).json({ message: "Only Owner Can Update the Project" });
         }
 
@@ -330,7 +390,7 @@ export const updateProject = async (req, res) => {
         console.log("Error in Updating Project:", error);
         
         res.status(400).json({
-            message: "Error Occured While Updating Project",
+            message: "Error Occurred While Updating Project",
             error: error.toString()
         });
     }
@@ -343,7 +403,7 @@ export const deleteProject = async (req, res) => {
             where: {
                 userId: req.user.id,
                 projectId: req.params.id,
-                role : "owner"
+                role : ["owner", "admin"]
             }
         });
         
@@ -352,6 +412,7 @@ export const deleteProject = async (req, res) => {
         }
 
         // console.log("Deleting...",req.params.id);
+        // console.log("Before Deleting");
 
         // Delete Project from DB
         await Project.destroy({
@@ -368,6 +429,9 @@ export const deleteProject = async (req, res) => {
         redisClient.del(key1);
         redisClient.del(key2);
 
+        // Forcefully Remove All Members from Socket Room
+        forceRemovalAllMembers(req.params.id);
+
         res.status(200).json({
             message: "Project Deleted Successfully"
         });
@@ -376,7 +440,7 @@ export const deleteProject = async (req, res) => {
         console.log("Error in Deleting Project:", error);
         
         res.status(400).json({
-            message: "Error Occured While Deleting Project",
+            message: "Error Occurred While Deleting Project",
             error: error.toString()
         });
     }

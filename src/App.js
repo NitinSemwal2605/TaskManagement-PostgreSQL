@@ -5,6 +5,7 @@ import process from "process";
 import authRoute from "../src/routes/auth.routes.js";
 import ProjectRoute from "../src/routes/project.routes.js";
 import TaskRoute from "../src/routes/task.routes.js";
+import chatRoutes from "./routes/chat.routes.js";
 
 const app = express();
 dotenv.config({ quiet: true });
@@ -15,6 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/auth", authRoute);
 app.use("/projects", ProjectRoute);
 app.use("/tasks", TaskRoute);
+app.use("/chats", chatRoutes);
 
 app.use(express.static(path.join(process.cwd(), "public")));
 

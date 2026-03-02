@@ -6,7 +6,7 @@ import { connectRedis } from "./config/redis.js";
 import sequelize, { connectSequelize } from "./config/sequelize.js";
 import { createRateLimiter } from "./middlewares/ratelimiter.middleware.js";
 import './models/index.js';
-import { initSocket } from "./sockets/socketServer.js";
+import { initSocket } from "./service/socketServer.js";
 
 dotenv.config({ quiet: true });
 const PORT = process.env.PORT || 5000;
